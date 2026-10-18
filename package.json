@@ -90,6 +90,9 @@
   },
   "devDependencies": {
     "@types/node": "22.20.5",
-    "typescript": "7.0.2"
+    "arktype": "2.2.9",
+    "typescript": "7.0.2",
+    "valibot": "1.5.0",
+    "zod": "4.6.7"
   }
 }
