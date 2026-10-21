@@ -5,4 +5,5 @@ export * from './async/index.ts';
 export * from './result/index.ts';
 export * from './boundary/index.ts';
 export * from './resilience/index.ts';
+export * from './cache/index.ts';
 export * from './state/index.ts';
