@@ -1,0 +1,12 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 97%
+        threshold: 0.5%
+    patch:
+      default:
+        target: 95%
+ignore:
+  - tests
+  - scripts
