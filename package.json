@@ -87,7 +87,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test \"tests/runtime/**/*.test.ts\"",
     "test:coverage": "node scripts/coverage.mjs",
-    "check": "npm run typecheck && npm run test:coverage",
+    "test:package": "npm run build && node --test \"tests/package/*.test.mjs\"",
+    "check": "npm run typecheck && npm run test:coverage && npm run test:package",
     "prepack": "npm run build"
   },
   "devDependencies": {
