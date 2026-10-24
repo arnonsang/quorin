@@ -162,3 +162,29 @@ describe('buffer policy', () => {
     assert.throws(() => toHex(view), code('UNSUPPORTED_VALUE'));
   });
 });
+
+describe('bytes edge cases', () => {
+  it('validates options and argument types', () => {
+    assert.throws(() => toBase64(new Uint8Array(), { alphabet: 'hex' as never }), code('INVALID_ARGUMENT'));
+    assert.throws(() => fromBase64('', { padding: 'sometimes' as never }), code('INVALID_ARGUMENT'));
+    assert.throws(() => fromBase64(1 as never), code('INVALID_ARGUMENT'));
+    assert.throws(() => fromHex(1 as never), code('INVALID_ARGUMENT'));
+    assert.throws(() => stringToBytes(1 as never), code('INVALID_ARGUMENT'));
+    assert.throws(() => toBase64(new Uint8Array(), null as never), code('INVALID_ARGUMENT'));
+  });
+
+  it('decodes non-ASCII characters as invalid base64', () => {
+    assert.throws(() => fromBase64('Zm9vÿ==='), code('INVALID_ENCODING'));
+    assert.throws(() => fromBase64('ZmA'), code('INVALID_ENCODING'));
+  });
+
+  it('accepts unpadded standard base64 when allowed', () => {
+    assert.equal(bytesToString(fromBase64('Zm9vYg', { padding: 'optional' })), 'foob');
+    assert.equal(bytesToString(fromBase64('Zm9vYmE', { padding: 'forbidden' })), 'fooba');
+    assert.equal(toBase64(stringToBytes('fooba'), { omitPadding: true }), 'Zm9vYmE');
+  });
+
+  it('accepts Buffer instances', () => {
+    assert.equal(toHex(Buffer.from('hi')), '6869');
+  });
+});

@@ -232,3 +232,21 @@ describe('mapAsync', () => {
     await assert.rejects(mapAsync([1], () => 1, { concurrency: 0 }), code('INVALID_ARGUMENT'));
   });
 });
+
+describe('limiter queue removal', () => {
+  it('removes an aborted task from the middle of the queue', async () => {
+    const limit = concurrencyLimit(1);
+    const gate = deferred();
+    const running = limit(() => gate.promise);
+    const controller = new AbortController();
+    const first = limit(() => 'first');
+    const middle = limit(() => 'middle', { signal: controller.signal });
+    const last = limit(() => 'last');
+    controller.abort('skip');
+    await assert.rejects(middle, (error) => error === 'skip');
+    assert.equal(limit.pendingCount, 2);
+    gate.resolve();
+    await running;
+    assert.deepEqual(await Promise.all([first, last]), ['first', 'last']);
+  });
+});

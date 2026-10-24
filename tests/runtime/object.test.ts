@@ -175,3 +175,44 @@ describe('stableStringify', () => {
     assert.equal(stableStringify(record), '{"a":1,"b":2}');
   });
 });
+
+describe('object edge cases', () => {
+  it('rejects segment kind mismatches in setPath', () => {
+    assert.throws(() => setPath({ list: [] } as Record<string, unknown>, ['list', 'x'], 1), code('INVALID_ARGUMENT'));
+    assert.throws(() => setPath({ a: {} } as Record<string, unknown>, ['a', 0], 1), code('INVALID_ARGUMENT'));
+    assert.throws(() => setPath({ a: new Date() } as Record<string, unknown>, ['a', 'b'], 1), code('UNSUPPORTED_VALUE'));
+    assert.throws(() => setPath({ a: null } as Record<string, unknown>, ['a', 'b'], 1), code('UNSUPPORTED_VALUE'));
+    assert.throws(() => setPath(new Date() as unknown as Record<string, unknown>, 'a', 1), code('UNSUPPORTED_VALUE'));
+  });
+
+  it('replaces an existing undefined branch', () => {
+    const target: Record<string, unknown> = { a: undefined };
+    setPath(target, 'a.b', 1);
+    assert.deepEqual(JSON.parse(JSON.stringify(target)), { a: { b: 1 } });
+  });
+
+  it('rejects accessors in setPath and arrays with accessors in JSON', () => {
+    const target = Object.defineProperty({}, 'a', { get: () => ({}), enumerable: true, configurable: true });
+    assert.throws(() => setPath(target as Record<string, unknown>, 'a.b', 1), code('UNSUPPORTED_VALUE'));
+    const array = [1];
+    Object.defineProperty(array, 0, { get: () => 1 });
+    assert.throws(() => stableStringify(array), code('UNSUPPORTED_VALUE'));
+    const hidden = Object.defineProperty({}, 'x', { value: 1, enumerable: false });
+    assert.throws(() => stableStringify(hidden), code('UNSUPPORTED_VALUE'));
+    const getter = Object.defineProperty({}, 'x', { get: () => 1, enumerable: true });
+    assert.throws(() => stableStringify(getter), code('UNSUPPORTED_VALUE'));
+    class Box {}
+    assert.throws(() => stableStringify(new Box() as never), code('UNSUPPORTED_VALUE'));
+    class List extends Array {}
+    assert.throws(() => stableStringify(new List() as never), code('UNSUPPORTED_VALUE'));
+  });
+
+  it('validates paths and merge inputs', () => {
+    assert.throws(() => getPath({}, 5 as never), code('INVALID_ARGUMENT'));
+    assert.throws(() => deepMerge([] as never, {}), code('UNSUPPORTED_VALUE'));
+    const merged = deepMerge({ n: -0, list: [1] }, {});
+    assert.equal(Object.is(merged.n, 0), true);
+    assert.equal(getPath(null, 'a', 'fb'), 'fb');
+    assert.equal(getPath({ a: 1 }, ['a', 0], 'fb'), 'fb');
+  });
+});

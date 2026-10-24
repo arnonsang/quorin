@@ -165,3 +165,15 @@ describe('Multimap', () => {
     assert.equal(map.valueCount, 0);
   });
 });
+
+describe('struct iteration helpers', () => {
+  it('exposes keys and values', () => {
+    const values = new ValueMap<[number, string], number>();
+    values.set([1, 'a'], 10);
+    assert.deepEqual([...values.values()], [10]);
+    const multi = new Multimap<string, number>();
+    multi.add('a', 1);
+    assert.equal(multi.has('a'), true);
+    assert.deepEqual([...multi.keys()], ['a']);
+  });
+});

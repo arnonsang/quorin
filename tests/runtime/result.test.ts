@@ -136,3 +136,13 @@ describe('trySafe', () => {
     await assert.rejects(trySafe(1 as unknown as () => number), { code: 'INVALID_ARGUMENT' });
   });
 });
+
+describe('trySafeSync success', () => {
+  it('returns ok results', () => {
+    const result = trySafeSync(() => 'fine');
+    assert.equal(result.ok && result.data, 'fine');
+    assert.throws(() => trySafeSync(null as never), { code: 'INVALID_ARGUMENT' });
+    assert.throws(() => trySafeSync(() => 1, { onDefect: 1 as never }), { code: 'INVALID_ARGUMENT' });
+    assert.throws(() => trySafeSync(() => 1, { classifyDefect: 1 as never }), { code: 'INVALID_ARGUMENT' });
+  });
+});

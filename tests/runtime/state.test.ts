@@ -276,3 +276,98 @@ describe('redact', () => {
     assert.deepEqual(Object.keys(output), ['__proto__']);
   });
 });
+
+describe('state edge cases', () => {
+  it('validates clone options and hook results', () => {
+    assert.throws(() => safeClone({}, { unsupported: 'copy' as never }), code('UNSUPPORTED_VALUE'));
+    const badHook = Object.create({ [CLONE_SYMBOL]: () => 1 });
+    assert.throws(() => safeClone(badHook), code('UNSUPPORTED_VALUE'));
+    const symbolValue = Symbol('v');
+    assert.equal(safeClone(symbolValue, { unsupported: 'reference' }), symbolValue);
+  });
+
+  it('clones resizable buffers and rejects detached ones', () => {
+    const Resizable = ArrayBuffer as unknown as new (length: number, options: { maxByteLength: number }) => ArrayBuffer & { resizable: boolean; maxByteLength: number };
+    const buffer = new Resizable(2, { maxByteLength: 8 });
+    new Uint8Array(buffer).set([1, 2]);
+    const copy = safeClone(buffer);
+    assert.equal(copy.resizable, true);
+    assert.equal(copy.maxByteLength, 8);
+    assert.deepEqual([...new Uint8Array(copy)], [1, 2]);
+    const detached = new ArrayBuffer(4);
+    const view = new Uint8Array(detached);
+    structuredClone(detached, { transfer: [detached] });
+    assert.throws(() => safeClone(detached), code('UNSUPPORTED_VALUE'));
+    assert.throws(() => isEqual(view, new Uint8Array(4)), code('UNSUPPORTED_VALUE'));
+  });
+
+  it('compares DataViews and enforces equality budgets', () => {
+    assert.equal(isEqual(new DataView(new ArrayBuffer(4), 1), new DataView(new ArrayBuffer(4), 1)), true);
+    assert.equal(isEqual(new DataView(new ArrayBuffer(4), 1), new DataView(new ArrayBuffer(4), 2)), false);
+    assert.throws(() => isEqual({ a: { b: 1 } }, { a: { b: 1 } }, { maxDepth: 1 }), code('TRAVERSAL_LIMIT'));
+    assert.equal(isEqual({ a: 1 }, [1]), false);
+    assert.equal(isEqual({ a: 1 }, { b: 1 }), false);
+    assert.equal(isEqual({ a: 1 }, { a: 1, b: 2 }), false);
+    assert.equal(isEqual(new Map([[1, 2]]), new Map([[1, 2], [3, 4]])), false);
+    assert.equal(isEqual(new Set([1]), new Set([1, 2])), false);
+    assert.equal(isEqual(/a/g, /a/g), true);
+  });
+
+  it('projects remaining value kinds in redact', () => {
+    const error = new Error('x');
+    Object.defineProperty(error, 'name', { value: 42 });
+    const named = Object.create(null) as Error;
+    const output = redact({
+      list: [undefined, Symbol('s'), , 1],
+      pattern: /a+/gi,
+      buffer: new ArrayBuffer(3),
+      view: new DataView(new ArrayBuffer(2)),
+      weakSet: new WeakSet(),
+      weakRef: new WeakRef({}),
+      promise: Promise.resolve(),
+      instance: new (class Thing {})(),
+      error,
+      map: new Map<unknown, unknown>([[{ k: 1 }, 'object key']]),
+      accessorArray: Object.defineProperty([0], 0, { get: () => 1, enumerable: true }),
+      guarded: Object.defineProperty({}, 'password', { get: () => 'x', enumerable: true }),
+      hidden: Object.defineProperty({}, 'h', { value: 1, enumerable: false }),
+    });
+    assert.deepEqual(output, {
+      list: [null, '[SYMBOL]', null, 1],
+      pattern: '/a+/gi',
+      buffer: { type: 'ArrayBuffer', byteLength: 3 },
+      view: { type: 'DataView', byteLength: 2 },
+      weakSet: '[WEAKSET]',
+      weakRef: '[WEAKREF]',
+      promise: '[PROMISE]',
+      instance: '[OBJECT]',
+      error: { name: 'Error', error: '[ERROR]' },
+      map: [[{ k: 1 }, 'object key']],
+      accessorArray: ['[ACCESSOR]'],
+      guarded: { password: '[REDACTED]' },
+      hidden: {},
+    });
+    assert.equal(named instanceof Error, false);
+  });
+
+  it('uses custom error serializers, masks, and validates options', () => {
+    const output = redact({ error: new RangeError('boom'), token: 't' }, {
+      serializeError: (error) => ({ message: error.message }),
+      mask: '***',
+    });
+    assert.deepEqual(output, { error: { message: 'boom' }, token: '***' });
+    assert.throws(() => redact({}, { keys: 'token' as never }), code('INVALID_ARGUMENT'));
+    assert.throws(() => redact({}, { keys: [1 as never] }), code('INVALID_ARGUMENT'));
+    assert.throws(() => redact({}, { paths: 'a' as never }), code('INVALID_ARGUMENT'));
+    assert.throws(() => redact({}, { mask: 1 as never }), code('INVALID_ARGUMENT'));
+    assert.throws(() => redact({}, { serializeError: 1 as never }), code('INVALID_ARGUMENT'));
+    assert.equal(redact('plain'), 'plain');
+    assert.deepEqual(redact({ password: 'x' }, { defaultKeys: false }), { password: 'x' });
+  });
+
+  it('falls back to Error when no name is found', () => {
+    const error = Object.setPrototypeOf(new Error('x'), null) as Error;
+    Object.setPrototypeOf(error, Object.create(Error.prototype, { name: { get: () => 'Getter' } }));
+    assert.deepEqual(redact(error), { name: 'Error', error: '[ERROR]' });
+  });
+});
