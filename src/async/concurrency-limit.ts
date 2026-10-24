@@ -8,6 +8,7 @@ export interface LimitOptions {
   readonly maxPending?: number;
 }
 
+/** A callable limiter returned by `concurrencyLimit`. */
 export interface Limiter {
   <T>(task: (context: TaskContext) => T | PromiseLike<T>, options?: RunOptions): Promise<T>;
   readonly activeCount: number;
@@ -24,6 +25,10 @@ interface Pending {
   unsubscribe: Unsubscribe;
 }
 
+/**
+ * Creates a FIFO limiter that runs at most `concurrency` tasks at once and queues up to `maxPending`.
+ * An aborted running task keeps its slot until the underlying work settles.
+ */
 export function concurrencyLimit(concurrency: number, options: LimitOptions = {}): Limiter {
   assertInteger('concurrency', concurrency, 1);
   assertOptionsObject('options', options);

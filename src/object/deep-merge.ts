@@ -11,6 +11,7 @@ type MergeValue<L, R, D extends number> = [IsRecord<L>, IsRecord<R>] extends [tr
   ? DeepMerge<L, R, D>
   : R;
 
+/** The result type of `deepMerge`, where right-hand values replace left-hand values. */
 export type DeepMerge<L, R, D extends number = 8> = [D] extends [never]
   ? JsonRecord
   : string extends keyof L | keyof R
@@ -63,6 +64,10 @@ function merge(left: Record<string, unknown>, right: Record<string, unknown>): R
   return output;
 }
 
+/**
+ * Recursively merges two JSON records into a new graph without mutating either input.
+ * Records merge; arrays and primitives from `right` replace those from `left`.
+ */
 export function deepMerge<const L extends JsonRecord, const R extends JsonRecord>(left: L, right: R): DeepMerge<L, R> {
   if (!isPlainRecord(left) || !isPlainRecord(right)) throw unsupportedValue('deepMerge expects two plain records');
   const budget = createBudget(undefined);

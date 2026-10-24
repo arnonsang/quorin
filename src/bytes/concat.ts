@@ -1,6 +1,10 @@
 import { capacityExceeded } from '../internal/errors.ts';
 import { assertBytes } from './assert.ts';
 
+/**
+ * Concatenates byte views into one newly allocated `Uint8Array`.
+ * Inputs are copied in order and never modified.
+ */
 export function concatBytes(...parts: readonly Uint8Array[]): Uint8Array {
   let total = 0;
   for (let index = 0; index < parts.length; index++) {

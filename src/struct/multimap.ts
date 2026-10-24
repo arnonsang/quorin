@@ -1,3 +1,4 @@
+/** A map from each key to an ordered list of values, duplicates included. */
 export class Multimap<K, V> implements Iterable<[K, readonly V[]]> {
   readonly #entries = new Map<K, V[]>();
   #valueCount = 0;

@@ -35,6 +35,7 @@ function reverseTable(alphabet: Base64Alphabet): Int16Array {
   return lookup;
 }
 
+/** Encodes bytes as base64 (default) or base64url, with padding unless `omitPadding` is true. */
 export function toBase64(bytes: Uint8Array, options: ToBase64Options = {}): string {
   assertBytes('bytes', bytes);
   assertOptionsObject('options', options);
@@ -58,6 +59,10 @@ export function toBase64(bytes: Uint8Array, options: ToBase64Options = {}): stri
   return output;
 }
 
+/**
+ * Strictly decodes base64 or base64url text.
+ * Padding is required by default; whitespace, mixed alphabets, and nonzero pad bits are rejected.
+ */
 export function fromBase64(text: string, options: FromBase64Options = {}): Uint8Array {
   if (typeof text !== 'string') throw invalidArgument('text must be a string');
   assertOptionsObject('options', options);

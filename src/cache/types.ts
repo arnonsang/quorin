@@ -25,6 +25,7 @@ export interface GetOrFetchOptions {
   readonly onBackgroundTask?: (task: Promise<void>) => void;
 }
 
+/** A strict LRU cache with optional TTL and stale-while-revalidate windows. */
 export interface Cache<K, V> {
   readonly size: number;
   readonly max: number;
@@ -36,6 +37,7 @@ export interface Cache<K, V> {
   clear(): void;
 }
 
+/** A cache with a factory loader, per-key request coalescing, and background refresh. */
 export interface LoadingCache<K, V> extends Cache<K, V> {
   readonly inFlightCount: number;
   getOrFetch(key: K, options?: GetOrFetchOptions): Promise<V>;

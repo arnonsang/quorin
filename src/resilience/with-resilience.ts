@@ -16,6 +16,7 @@ export interface AttemptContext {
   readonly attempt: number;
 }
 
+/** Why a resilient run failed: a task error, a timeout, or a caller abort. */
 export type RunFailure<E = unknown> =
   | { readonly kind: 'task'; readonly error: E; readonly attempt: number }
   | { readonly kind: 'timeout'; readonly scope: 'attempt' | 'total'; readonly attempt: number; readonly timeoutMs: number }
@@ -35,6 +36,7 @@ export interface ResilienceOptions<E = unknown> extends CaptureOptions {
 
 const abortedEnvelopes = new WeakSet<object>();
 
+/** Returns true only for aborted failures, or results holding them, created by `withResilience`. */
 export function isUserAbort(value: unknown): boolean {
   if (typeof value !== 'object' || value === null) return false;
   const result = value as { ok?: unknown; error?: unknown };
@@ -67,6 +69,10 @@ function validate(options: ResilienceOptions<unknown>): void {
   if (max < base) throw invalidRange('maxDelayMs must be at least baseDelayMs');
 }
 
+/**
+ * Runs a task with optional retries, full-jitter backoff, and attempt and total timeouts.
+ * Retries require `retrySafe: true` and `shouldRetry`. Library timeouts are terminal.
+ */
 export function withResilience<T, E>(
   task: (context: AttemptContext) => T | PromiseLike<T>,
   options: ResilienceOptions<E> & { readonly mapError: (raw: unknown) => E },

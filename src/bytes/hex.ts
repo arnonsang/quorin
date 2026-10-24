@@ -19,6 +19,7 @@ function nibble(code: number): number {
   return -1;
 }
 
+/** Encodes bytes as lowercase hexadecimal without a prefix. */
 export function toHex(bytes: Uint8Array): string {
   assertBytes('bytes', bytes);
   const digits = hexTable();
@@ -27,6 +28,10 @@ export function toHex(bytes: Uint8Array): string {
   return output;
 }
 
+/**
+ * Decodes hexadecimal text in either case.
+ * Throws `INVALID_ENCODING` for odd lengths, whitespace, prefixes, or any non-hex character.
+ */
 export function fromHex(text: string): Uint8Array {
   if (typeof text !== 'string') throw invalidArgument('text must be a string');
   if (text.length % 2 !== 0) throw invalidEncoding('Hex input must have an even length');

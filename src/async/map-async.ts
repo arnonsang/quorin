@@ -8,6 +8,10 @@ export interface MapAsyncOptions {
   readonly signal?: AbortSignal;
 }
 
+/**
+ * Maps an array with bounded concurrency and resolves results in input order.
+ * The first failure or caller abort stops new work and aborts running mappers.
+ */
 export async function mapAsync<T, R>(
   items: readonly T[],
   mapper: (item: T, index: number, context: TaskContext) => R | PromiseLike<R>,

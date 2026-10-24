@@ -9,12 +9,17 @@ export interface DecodeOptions {
 let encoder: TextEncoder | undefined;
 const decoders = new Map<string, TextDecoder>();
 
+/** Encodes text as UTF-8. */
 export function stringToBytes(text: string): Uint8Array {
   if (typeof text !== 'string') throw invalidArgument('text must be a string');
   encoder ??= new TextEncoder();
   return encoder.encode(text);
 }
 
+/**
+ * Decodes UTF-8 bytes. Invalid input throws `INVALID_ENCODING` unless `fatal` is false.
+ * A leading BOM is removed unless `ignoreBOM` is true.
+ */
 export function bytesToString(bytes: Uint8Array, options: DecodeOptions = {}): string {
   assertBytes('bytes', bytes);
   const fatal = options.fatal ?? true;

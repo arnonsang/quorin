@@ -46,6 +46,10 @@ function createBranch(segments: readonly PathSegment[], value: unknown): unknown
   return child;
 }
 
+/**
+ * Writes `value` at `path` in a plain record or dense array, creating missing branches.
+ * The whole path is validated before the single write, so failures leave the input unchanged.
+ */
 export function setPath<T extends object, const P extends string | readonly PathSegment[]>(
   target: T,
   path: P,

@@ -287,6 +287,10 @@ function isolate(callback: () => void): void {
   }
 }
 
+/**
+ * Creates a per-instance LRU cache bounded to `max` entries.
+ * Passing `load` adds `getOrFetch` with singleflight loading.
+ */
 export function createCache<K, V>(options: LoadingCacheOptions<K, V>): LoadingCache<K, V>;
 export function createCache<K, V>(options: CacheOptions): Cache<K, V>;
 export function createCache<K, V>(options: CacheOptions | LoadingCacheOptions<K, V>): Cache<K, V> | LoadingCache<K, V> {

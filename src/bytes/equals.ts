@@ -1,5 +1,9 @@
 import { assertBytes } from './assert.ts';
 
+/**
+ * Compares two byte views by length and content.
+ * Exits at the first difference, so it is not a constant-time comparison.
+ */
 export function equalsBytes(a: Uint8Array, b: Uint8Array): boolean {
   assertBytes('a', a);
   assertBytes('b', b);

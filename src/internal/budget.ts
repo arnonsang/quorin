@@ -1,6 +1,7 @@
 import { traversalLimit } from './errors.ts';
 import { assertInteger } from './validate.ts';
 
+/** Limits for graph traversal. Defaults are a depth of 128 and 100000 visited nodes. */
 export interface TraversalOptions {
   readonly maxDepth?: number;
   readonly maxNodes?: number;

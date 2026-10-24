@@ -10,6 +10,10 @@ function normalizeCapacity(requested: number): number {
   return capacity;
 }
 
+/**
+ * A double-ended queue backed by a growable ring buffer.
+ * End operations are amortized O(1). Mutating during iteration throws `CONCURRENT_MODIFICATION`.
+ */
 export class Deque<T> implements Iterable<T> {
   #buffer: (T | undefined)[];
   #mask: number;

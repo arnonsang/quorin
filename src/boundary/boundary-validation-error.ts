@@ -1,5 +1,6 @@
 import type { StandardSchemaV1 } from './standard-schema.ts';
 
+/** A validation failure. Keeps the vendor and every issue; the message never includes input values. */
 export class BoundaryValidationError extends Error {
   override name = 'BoundaryValidationError';
   readonly code: 'VALIDATION_FAILED' = 'VALIDATION_FAILED';

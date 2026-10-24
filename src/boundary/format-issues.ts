@@ -12,6 +12,7 @@ interface TrieNode {
   readonly children: Map<PropertyKey, TrieNode>;
 }
 
+/** Groups issue messages by typed path, in first-seen order. */
 export function formatIssues(source: BoundaryValidationError | readonly StandardSchemaV1.Issue[]): readonly IssueGroup[] {
   const issues: readonly StandardSchemaV1.Issue[] = source instanceof BoundaryValidationError ? source.issues : source;
   if (!Array.isArray(source) && !(source instanceof BoundaryValidationError)) throw invalidArgument('formatIssues expects issues or a BoundaryValidationError');

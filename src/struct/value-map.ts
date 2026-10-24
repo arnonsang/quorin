@@ -1,6 +1,10 @@
 import type { JsonValue } from '../internal/json.ts';
 import { decodeKey, encodeKey } from '../internal/key-codec.ts';
 
+/**
+ * A map keyed by JSON values compared structurally. Record key order does not matter;
+ * array order does. Keys are snapshotted on insertion.
+ */
 export class ValueMap<K extends JsonValue, V> implements Iterable<[K, V]> {
   readonly #entries = new Map<string, V>();
 

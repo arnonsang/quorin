@@ -6,6 +6,7 @@ type Primitive = string | number | boolean | bigint | symbol | null | undefined;
 
 type TupleIndex<K> = K extends `${infer N extends number}` ? N : never;
 
+/** Array-form paths into `T`, inferred up to eight segments. */
 export type Path<T, D extends number = 8> = [D] extends [never]
   ? never
   : T extends Primitive | ((...args: never[]) => unknown)
@@ -40,6 +41,7 @@ type Step<T, H> = unknown extends T
             : undefined
         : undefined;
 
+/** The value type at path `P` in `T`. Missing locations include `undefined`; dynamic paths are `unknown`. */
 export type PathValue<T, P, D extends number = 8> = [D] extends [never]
   ? unknown
   : P extends readonly []

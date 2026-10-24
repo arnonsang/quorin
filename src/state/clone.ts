@@ -3,6 +3,7 @@ import { assertOptionsObject } from '../internal/validate.ts';
 import { assertUsableBuffer, hasOnlyIntrinsicKeys, kindOf, typedArrayConstructors, type TypedArray } from './builtins.ts';
 import { StateError } from './state-error.ts';
 
+/** Method key for custom clone hooks on classes. */
 export const CLONE_SYMBOL: unique symbol = Symbol('senu.clone');
 
 export interface CloneContext {
@@ -154,6 +155,10 @@ class Cloner {
   }
 }
 
+/**
+ * Deep-clones supported graphs, preserving cycles, aliases, holes, symbol keys, and descriptors.
+ * Unsupported values throw `StateError` unless `unsupported: 'reference'` is set.
+ */
 export function safeClone<T>(value: T, options?: CloneOptions): T {
   assertOptionsObject('options', options);
   return new Cloner(options).clone(value, 1) as T;

@@ -4,6 +4,7 @@ import { unsupportedValue } from './errors.ts';
 export type JsonPrimitive = null | boolean | number | string;
 export type JsonArray = readonly JsonValue[];
 export type JsonRecord = { readonly [key: string]: JsonValue };
+/** Null, booleans, strings, finite numbers, dense arrays, and plain records of JSON values. */
 export type JsonValue = JsonPrimitive | JsonArray | JsonRecord;
 
 export function isPlainRecord(value: unknown): value is Record<string, unknown> {

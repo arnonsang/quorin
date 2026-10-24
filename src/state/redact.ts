@@ -191,6 +191,10 @@ class Redactor {
   }
 }
 
+/**
+ * Produces a JSON projection safe for logs, masking sensitive keys and paths.
+ * The input is never mutated. This reduces, but cannot guarantee removal of, secrets.
+ */
 export function redact(value: unknown, options: RedactOptions = {}): JsonValue {
   assertOptionsObject('options', options);
   return new Redactor(options).project(value, 1);

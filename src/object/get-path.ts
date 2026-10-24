@@ -17,6 +17,10 @@ function readOwn(container: unknown, segment: PathSegment): unknown {
   return descriptor.value;
 }
 
+/**
+ * Reads a value through own data properties only.
+ * Returns `fallback` (or `undefined`) when the path is missing. Accessors are rejected, never invoked.
+ */
 export function getPath<T, const P extends readonly PathSegment[]>(target: T, path: P): PathValue<T, P>;
 export function getPath<T, const P extends readonly PathSegment[], F>(target: T, path: P, fallback: F): PathValue<T, P> | F;
 export function getPath<T, const P extends string>(target: T, path: P): PathValue<T, SplitPath<P>>;

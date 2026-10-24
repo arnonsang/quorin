@@ -2,6 +2,7 @@ import { assertFunction } from '../internal/validate.ts';
 import { isDefect } from './defect.ts';
 import { err, ok, type SafeResult } from './result.ts';
 
+/** Controls how thrown values are classified and captured. */
 export interface CaptureOptions {
   readonly classifyDefect?: (raw: unknown) => boolean;
   readonly onDefect?: (raw: unknown) => void;
@@ -27,6 +28,10 @@ export function captureFailure(raw: unknown, options: CaptureOptions & { mapErro
   return options?.mapError === undefined ? raw : options.mapError(raw);
 }
 
+/**
+ * Runs `fn` and returns its value or thrown error as a `SafeResult`.
+ * Defects are rethrown after `onDefect` runs.
+ */
 export function trySafeSync<T, E>(fn: () => T, options: MappedCaptureOptions<E>): SafeResult<T, E>;
 export function trySafeSync<T>(fn: () => T, options?: CaptureOptions): SafeResult<T, unknown>;
 export function trySafeSync<T>(
@@ -44,6 +49,10 @@ export function trySafeSync<T>(
   return ok(value);
 }
 
+/**
+ * Invokes `fn` and resolves to a `SafeResult` for its value, synchronous throw, or rejection.
+ * Defects reject after `onDefect` runs.
+ */
 export function trySafe<T, E>(fn: () => T | PromiseLike<T>, options: MappedCaptureOptions<E>): Promise<SafeResult<T, E>>;
 export function trySafe<T>(fn: () => T | PromiseLike<T>, options?: CaptureOptions): Promise<SafeResult<T, unknown>>;
 export async function trySafe<T>(

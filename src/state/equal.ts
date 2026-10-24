@@ -119,6 +119,10 @@ class Comparer {
   }
 }
 
+/**
+ * Compares supported graphs structurally without invoking getters or custom equality.
+ * Map and Set entries are compared in insertion order, and alias topology is significant.
+ */
 export function isEqual(a: unknown, b: unknown, options?: TraversalOptions): boolean {
   return new Comparer(options).equal(a, b, 1);
 }

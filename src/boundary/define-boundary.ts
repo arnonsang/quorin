@@ -7,6 +7,10 @@ import { assertSchema, runSchema } from './validate.ts';
 
 export type Boundary<R, E> = (input: unknown) => Promise<SafeResult<R, E>>;
 
+/**
+ * Wraps a handler so its input is validated first. Validation issues and handler failures
+ * resolve as failed results; validator crashes and defects reject.
+ */
 export function defineBoundary<S extends StandardSchemaV1, R, E>(
   schema: S,
   handler: (input: StandardSchemaV1.InferOutput<S>) => R | PromiseLike<R>,

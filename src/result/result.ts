@@ -1,3 +1,7 @@
+/**
+ * A frozen two-element array `[error, data]` that also carries `ok`, `error`, `data`,
+ * `unwrapOr`, and `mapData`. Narrow with `result.ok`.
+ */
 export type SafeResult<T, E = unknown> = Success<T> | Failure<E>;
 
 export type Success<T> = readonly [error: null, data: T] & {
@@ -39,10 +43,12 @@ function build(isOk: boolean, error: unknown, data: unknown): AnyResult {
   return Object.freeze(tuple) as unknown as AnyResult;
 }
 
+/** Creates a successful result holding `data`. */
 export function ok<T>(data: T): SafeResult<T, never> {
   return build(true, null, data) as SafeResult<T, never>;
 }
 
+/** Creates a failed result holding `error`. */
 export function err<E>(error: E): SafeResult<never, E> {
   return build(false, error, null) as SafeResult<never, E>;
 }

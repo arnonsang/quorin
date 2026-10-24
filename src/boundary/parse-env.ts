@@ -4,6 +4,10 @@ import { assertSchema, runSchema } from './validate.ts';
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
 
+/**
+ * Validates an explicitly supplied environment record with a Standard Schema.
+ * Resolves to the schema output or rejects with `BoundaryValidationError`.
+ */
 export async function parseEnv<S extends StandardSchemaV1>(
   schema: S,
   source: EnvSource,

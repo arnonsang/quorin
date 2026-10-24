@@ -1,3 +1,4 @@
+/** Thrown with code `UNSAFE_PATH` when a path or key would reach `__proto__`, `constructor`, or `prototype`. */
 export class SecurityError extends Error {
   override name = 'SecurityError';
   readonly code: 'UNSAFE_PATH' = 'UNSAFE_PATH';
