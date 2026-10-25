@@ -783,4 +783,4 @@ To report coverage to Codecov from CI, add a `CODECOV_TOKEN` repository secret.
 
 ## License
 
-[MIT](./LICENSE). The vendored Standard Schema type declarations are MIT licensed by their authors.
+[MIT](./LICENSE). The vendored Standard Schema type declarations are MIT licensed by their authors; see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).

@@ -19,9 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-src/boundary/standard-schema.ts contains type declarations copied from
-Standard Schema (https://github.com/standard-schema/standard-schema),
-@standard-schema/spec 1.0.0, MIT License, copyright the Standard Schema authors.

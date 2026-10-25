@@ -36,6 +36,7 @@ describe('packed package', () => {
     assert.ok(files.includes('dist/index.js'));
     assert.ok(files.includes('dist/index.d.ts'));
     assert.ok(files.includes('LICENSE'));
+    assert.ok(files.includes('THIRD_PARTY_NOTICES.md'));
     assert.ok(files.includes('README.md'));
     assert.equal(files.some((file) => file.startsWith('src/') || file.startsWith('tests/')), false);
   });
