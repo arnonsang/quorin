@@ -25,8 +25,24 @@ import { withResilience } from 'senu/resilience';
 
 > **Status:** `0.1.0` preview. The API may still change before `1.0`.
 
+## Why senu
+
+I built senu because the small utilities I reached for in every TypeScript project each followed their own rules, and the gaps between those rules kept turning into production bugs:
+
+- A timeout written with `Promise.race` stops the caller from waiting, but the request keeps running and its late rejection can go unhandled.
+- A concurrency limiter and a cache from two different packages disagree on what an `AbortSignal` means, so cancelling a request frees a slot in one and leaks it in the other.
+- Retry helpers retry anything that throws, including requests that are not safe to repeat.
+- Treating every `TypeError` as a programming bug also hides network failures, because `fetch` throws `TypeError` too.
+- Some caches treat storing `undefined` as a delete, and hand-rolled request coalescing lets a late response overwrite newer data.
+- Deep clone helpers return objects that look right but break as soon as a method touches a private field.
+
+Each of these can be fixed on its own. What I wanted was one set of primitives that agree with each other: the same cancellation model everywhere, results you can check without guessing, errors with stable codes, and clear rules about who owns and mutates data. You can adopt a single function without adopting a framework, and the pieces compose without surprises.
+
+senu is deliberately small. It is not a framework, an HTTP client, a schema library, or a distributed cache. It does a few common jobs carefully and documents exactly where its guarantees stop.
+
 ## Contents
 
+- [Why senu](#why-senu)
 - [Install](#install)
 - [Quick start](#quick-start)
 - [Modules](#modules)
