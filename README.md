@@ -42,6 +42,7 @@ import { withResilience } from 'senu/resilience';
 - [Errors](#errors)
 - [Cancellation model](#cancellation-model)
 - [Runtime support](#runtime-support)
+- [Agent skill](#agent-skill)
 - [Development](#development)
 - [License](#license)
 
@@ -719,6 +720,21 @@ TypeScript consumers need TypeScript 5.8 or later. Declarations are tested with 
 
 Zero runtime dependencies reduces supply-chain exposure; it does not remove implementation risk or maintenance cost.
 
+## Agent skill
+
+senu ships an agent skill that teaches coding agents (Claude Code, Cursor, Codex, and others) how to use the library, how to build packages on top of it, and how to contribute to it. Install it into your project with the [skills CLI](https://github.com/vercel-labs/skills):
+
+```sh
+npx skills add arnonsang/senu
+```
+
+```sh
+npx skills add arnonsang/senu --skill senu -a claude-code   # one agent only
+npx skills add arnonsang/senu -g                            # available in every project
+```
+
+The skill lives in [`skills/senu`](./skills/senu). Every code example in its references is typechecked against the library in CI (`npm run check:skill`).
+
 ## Development
 
 ```sh
@@ -727,6 +743,7 @@ npm run typecheck      # tsc over src and tests, including type-level tests
 npm test               # runtime tests on the TypeScript sources
 npm run test:coverage  # tests with coverage thresholds, writes coverage/lcov.info
 npm run test:package   # builds, packs, installs the tarball, and checks imports, require, and types
+npm run check:skill    # typechecks the code examples in the agent skill
 npm run check          # all of the above
 ```
 
@@ -743,6 +760,7 @@ tests/
   runtime/          behavior and regression tests
   types/            compile-time type tests
   package/          packed tarball tests
+skills/senu/        agent skill (SKILL.md, references, evals)
 ```
 
 To report coverage to Codecov from CI, add a `CODECOV_TOKEN` repository secret.
