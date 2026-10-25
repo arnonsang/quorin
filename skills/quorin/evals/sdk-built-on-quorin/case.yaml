@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: sdk-built-on-quorin
+expected_outcome: |
+  package.json lists quorin as a peerDependency (and a devDependency) because SafeResult is part of the
+  public API. src/client.ts imports from quorin subpaths, accepts an optional signal and forwards it,
+  uses withResilience for the request, and maps RunFailure kinds into coded errors such as TIMEOUT,
+  ABORTED, and RATE_LIMITED returned inside a SafeResult.

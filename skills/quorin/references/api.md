@@ -1,4 +1,4 @@
-# senu API reference (0.1.x)
+# quorin API reference (0.1.x)
 
 Compact signatures, options, and defaults for every export. Types are simplified for reading; the `.d.ts` files are authoritative.
 

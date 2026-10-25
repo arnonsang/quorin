@@ -1,4 +1,4 @@
-export type SenuErrorCode =
+export type QuorinErrorCode =
   | 'INVALID_ARGUMENT'
   | 'UNSUPPORTED_VALUE'
   | 'TRAVERSAL_LIMIT'
@@ -13,9 +13,9 @@ export type SenuErrorCode =
   | 'CACHE_INVALIDATED'
   | 'CACHE_LOAD_TIMEOUT';
 
-export type CodedError<E extends Error, C extends SenuErrorCode> = E & { readonly code: C };
+export type CodedError<E extends Error, C extends QuorinErrorCode> = E & { readonly code: C };
 
-function withCode<E extends Error, C extends SenuErrorCode>(error: E, code: C): CodedError<E, C> {
+function withCode<E extends Error, C extends QuorinErrorCode>(error: E, code: C): CodedError<E, C> {
   Object.defineProperty(error, 'code', { value: code, enumerable: true });
   return error as CodedError<E, C>;
 }

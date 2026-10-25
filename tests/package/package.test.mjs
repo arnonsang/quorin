@@ -17,7 +17,7 @@ function run(command, args, cwd) {
 }
 
 before(() => {
-  workspace = mkdtempSync(join(tmpdir(), 'senu-package-'));
+  workspace = mkdtempSync(join(tmpdir(), 'quorin-package-'));
   const output = JSON.parse(run(npm, ['pack', '--json', '--ignore-scripts', '--pack-destination', workspace], root));
   packed = output[0];
   fixture = join(workspace, 'fixture');
@@ -42,13 +42,13 @@ describe('packed package', () => {
   });
 
   it('has no runtime dependencies', () => {
-    const manifest = JSON.parse(readFileSync(join(fixture, 'node_modules/senu/package.json'), 'utf8'));
+    const manifest = JSON.parse(readFileSync(join(fixture, 'node_modules/quorin/package.json'), 'utf8'));
     assert.equal(manifest.dependencies, undefined);
-    assert.deepEqual(readdirSync(join(fixture, 'node_modules')).sort(), ['.package-lock.json', 'senu']);
+    assert.deepEqual(readdirSync(join(fixture, 'node_modules')).sort(), ['.package-lock.json', 'quorin']);
   });
 
   it('emits no JavaScript import that points at a TypeScript file', () => {
-    const dist = join(fixture, 'node_modules/senu/dist');
+    const dist = join(fixture, 'node_modules/quorin/dist');
     const offenders = [];
     for (const entry of readdirSync(dist, { recursive: true })) {
       if (!String(entry).endsWith('.js')) continue;
@@ -60,10 +60,10 @@ describe('packed package', () => {
 
   it('imports the root and every subpath with shared identity', () => {
     const script = `
-      const rootModule = await import('senu');
+      const rootModule = await import('quorin');
       const names = new Set();
       for (const subpath of ${JSON.stringify(subpaths)}) {
-        const mod = await import('senu/' + subpath);
+        const mod = await import('quorin/' + subpath);
         for (const [name, value] of Object.entries(mod)) {
           if (rootModule[name] !== value) throw new Error('identity mismatch for ' + name);
           names.add(name);
@@ -78,10 +78,10 @@ describe('packed package', () => {
 
   it('supports require of the ESM graph', () => {
     const script = `
-      const senu = require('senu');
-      const cache = require('senu/cache');
-      if (senu.createCache !== cache.createCache) throw new Error('identity mismatch');
-      const [error, data] = senu.ok(1);
+      const quorin = require('quorin');
+      const cache = require('quorin/cache');
+      if (quorin.createCache !== cache.createCache) throw new Error('identity mismatch');
+      const [error, data] = quorin.ok(1);
       if (error !== null || data !== 1) throw new Error('unexpected result');
       console.log('ok');
     `;
@@ -96,10 +96,10 @@ describe('packed package', () => {
       const dir = join(fixture, `types-${mode.moduleResolution.toLowerCase()}`);
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, 'consumer.ts'), `
-        import { Deque, ok, type SafeResult } from 'senu';
-        import { createCache } from 'senu/cache';
-        import { getPath } from 'senu/object';
-        import { withResilience } from 'senu/resilience';
+        import { Deque, ok, type SafeResult } from 'quorin';
+        import { createCache } from 'quorin/cache';
+        import { getPath } from 'quorin/object';
+        import { withResilience } from 'quorin/resilience';
 
         const deque = new Deque<number>();
         deque.push(1);

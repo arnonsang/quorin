@@ -1,6 +1,6 @@
-# senu recipes
+# quorin recipes
 
-Patterns for application code. Every `ts` block in this file is extracted and typechecked against senu in the senu repository, so the code compiles as written. Names declared with `declare` stand for your own application code.
+Patterns for application code. Every `ts` block in this file is extracted and typechecked against quorin in the quorin repository, so the code compiles as written. Names declared with `declare` stand for your own application code.
 
 ## Contents
 
@@ -13,7 +13,7 @@ Patterns for application code. Every `ts` block in this file is extracted and ty
 7. [Structural keys and fingerprints](#7-structural-keys-and-fingerprints)
 8. [Layered configuration](#8-layered-configuration)
 9. [Work queues](#9-work-queues)
-10. [Testing code that uses senu](#10-testing-code-that-uses-senu)
+10. [Testing code that uses quorin](#10-testing-code-that-uses-quorin)
 
 ## 1. Validated environment config
 
@@ -21,7 +21,7 @@ Parse once at startup and export the typed result. Pass the source explicitly so
 
 ```ts
 import { z } from 'zod';
-import { parseEnv, formatIssues, BoundaryValidationError } from 'senu/boundary';
+import { parseEnv, formatIssues, BoundaryValidationError } from 'quorin/boundary';
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -52,8 +52,8 @@ Issue messages come from the schema, not from the values, so printing them does 
 Classify retryable failures yourself. A resolved 503 is a successful `fetch` promise, so turn it into an error; consume or cancel bodies you discard so connections are released. Read the body inside the task so the timeout covers it.
 
 ```ts
-import { withResilience, isUserAbort, type RunFailure } from 'senu/resilience';
-import type { SafeResult } from 'senu/result';
+import { withResilience, isUserAbort, type RunFailure } from 'quorin/resilience';
+import type { SafeResult } from 'quorin/result';
 
 export class HttpError extends Error {
   readonly status: number;
@@ -119,8 +119,8 @@ Only `GET`-like or idempotency-keyed requests should set `retrySafe: true`. With
 Create the cache once. The loader receives a signal that aborts when every waiter leaves or the load is invalidated. Throw from the loader on failure so nothing is cached.
 
 ```ts
-import { createCache } from 'senu/cache';
-import { withResilience } from 'senu/resilience';
+import { createCache } from 'quorin/cache';
+import { withResilience } from 'quorin/resilience';
 
 interface Product {
   readonly id: string;
@@ -177,7 +177,7 @@ Validate unknown input, then run the handler. Separate invalid input (400) from 
 
 ```ts
 import * as v from 'valibot';
-import { defineBoundary, formatIssues, BoundaryValidationError } from 'senu/boundary';
+import { defineBoundary, formatIssues, BoundaryValidationError } from 'quorin/boundary';
 
 declare const db: { insertUser(input: { email: string; name: string }): Promise<{ id: string }> };
 
@@ -207,7 +207,7 @@ Pass `{ mapError }` as the third argument to get a typed failure instead of `unk
 `mapAsync` for one batch; `concurrencyLimit` for a limit shared across many callers, such as a third-party API quota.
 
 ```ts
-import { concurrencyLimit, mapAsync, QueueError } from 'senu/async';
+import { concurrencyLimit, mapAsync, QueueError } from 'quorin/async';
 
 declare function resizeImage(url: string, signal: AbortSignal): Promise<Uint8Array>;
 declare function callPartnerApi(path: string, signal: AbortSignal): Promise<unknown>;
@@ -242,7 +242,7 @@ export function shutdown(): void {
 ## 6. Log-safe output
 
 ```ts
-import { redact } from 'senu/state';
+import { redact } from 'quorin/state';
 
 export function logEvent(message: string, data: unknown): void {
   const safe = redact(data, {
@@ -259,9 +259,9 @@ Default keys already cover password, secret, token, authorization, api key, priv
 ## 7. Structural keys and fingerprints
 
 ```ts
-import { ValueMap } from 'senu/struct';
-import { stableStringify } from 'senu/object';
-import { fastHash, stringToBytes, toHex } from 'senu/bytes';
+import { ValueMap } from 'quorin/struct';
+import { stableStringify } from 'quorin/object';
+import { fastHash, stringToBytes, toHex } from 'quorin/bytes';
 
 type Query = { readonly filter: { readonly status: string; readonly tags: readonly string[] }; readonly page: number };
 
@@ -280,7 +280,7 @@ export function etagFor(body: { readonly [key: string]: string | number | boolea
 ## 8. Layered configuration
 
 ```ts
-import { deepMerge, getPath } from 'senu/object';
+import { deepMerge, getPath } from 'quorin/object';
 
 const defaults = { server: { port: 3000, host: '0.0.0.0' }, features: { search: false } } as const;
 const fileConfig = JSON.parse('{"server":{"port":8080}}') as { server: { port: number } };
@@ -295,7 +295,7 @@ export const searchEnabled = getPath(config, 'features.search', false);
 ## 9. Work queues
 
 ```ts
-import { Deque } from 'senu/struct';
+import { Deque } from 'quorin/struct';
 
 interface Job {
   readonly id: string;
@@ -316,15 +316,15 @@ export function next(): Job | undefined {
 
 Do not push or shift while iterating a `Deque`; it throws `CONCURRENT_MODIFICATION`. Drain with `while (jobs.size > 0)` instead.
 
-## 10. Testing code that uses senu
+## 10. Testing code that uses quorin
 
 Drive timing with controlled promises and `AbortController` rather than long sleeps. Assert on result shapes and error codes.
 
 ```ts
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createCache } from 'senu/cache';
-import { withResilience } from 'senu/resilience';
+import { createCache } from 'quorin/cache';
+import { withResilience } from 'quorin/resilience';
 
 test('concurrent misses share one load', async () => {
   let calls = 0;

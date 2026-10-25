@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const sources = ['skills/senu/references/recipes.md', 'skills/senu/references/building-on-senu.md'];
+const sources = ['skills/quorin/references/recipes.md', 'skills/quorin/references/building-on-quorin.md'];
 const outDir = '.skill-check';
 
 rmSync(outDir, { recursive: true, force: true });
@@ -26,7 +26,7 @@ writeFileSync(
     compilerOptions: {
       noEmit: true,
       isolatedDeclarations: false,
-      paths: { senu: ['../src/index.ts'], 'senu/*': ['../src/*/index.ts'] },
+      paths: { quorin: ['../src/index.ts'], 'quorin/*': ['../src/*/index.ts'] },
     },
     include: ['*.ts'],
   }),

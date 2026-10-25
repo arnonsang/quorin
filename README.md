@@ -1,33 +1,33 @@
 <div align="center">
 
-# senu
+# quorin
 
 **Small primitives for dependable TypeScript.**
 
-[![npm version](https://img.shields.io/npm/v/senu.svg)](https://www.npmjs.com/package/senu)
-[![CI](https://github.com/arnonsang/senu/actions/workflows/ci.yml/badge.svg)](https://github.com/arnonsang/senu/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/arnonsang/senu/branch/main/graph/badge.svg)](https://codecov.io/gh/arnonsang/senu)
-[![license](https://img.shields.io/npm/l/senu.svg)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/quorin.svg)](https://www.npmjs.com/package/quorin)
+[![CI](https://github.com/arnonsang/quorin/actions/workflows/ci.yml/badge.svg)](https://github.com/arnonsang/quorin/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/arnonsang/quorin/branch/main/graph/badge.svg)](https://codecov.io/gh/arnonsang/quorin)
+[![license](https://img.shields.io/npm/l/quorin.svg)](./LICENSE)
 ![runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)
 
 </div>
 
-Senu (pronounced **SEH-noo**) is a set of modular TypeScript utilities for data structures, bytes, objects, async work, results, validation, retries, caching, and state. It has no runtime dependencies.
+Quorin (pronounced **KWOR-in**) is a set of modular TypeScript utilities for data structures, bytes, objects, async work, results, validation, retries, caching, and state. It has no runtime dependencies.
 
 Every primitive has a defined input domain, a documented error channel, a clear ownership policy (does it copy, mutate, or return references?), and explicit resource lifetimes. The modules share the same cancellation rules, so composing them does not introduce surprising behavior.
 
 ```ts
-import { Deque, ok, createCache } from 'senu';
-import { concatBytes } from 'senu/bytes';
-import { defineBoundary } from 'senu/boundary';
-import { withResilience } from 'senu/resilience';
+import { Deque, ok, createCache } from 'quorin';
+import { concatBytes } from 'quorin/bytes';
+import { defineBoundary } from 'quorin/boundary';
+import { withResilience } from 'quorin/resilience';
 ```
 
 > **Status:** `0.1.0` preview. The API may still change before `1.0`.
 
-## Why senu
+## Why quorin
 
-I built senu because the small utilities I reached for in every TypeScript project each followed their own rules, and the gaps between those rules kept turning into production bugs:
+I built quorin because the small utilities I reached for in every TypeScript project each followed their own rules, and the gaps between those rules kept turning into production bugs:
 
 - A timeout written with `Promise.race` stops the caller from waiting, but the request keeps running and its late rejection can go unhandled.
 - A concurrency limiter and a cache from two different packages disagree on what an `AbortSignal` means, so cancelling a request frees a slot in one and leaks it in the other.
@@ -38,23 +38,27 @@ I built senu because the small utilities I reached for in every TypeScript proje
 
 Each of these can be fixed on its own. What I wanted was one set of primitives that agree with each other: the same cancellation model everywhere, results you can check without guessing, errors with stable codes, and clear rules about who owns and mutates data. You can adopt a single function without adopting a framework, and the pieces compose without surprises.
 
-senu is deliberately small. It is not a framework, an HTTP client, a schema library, or a distributed cache. It does a few common jobs carefully and documents exactly where its guarantees stop.
+quorin is deliberately small. It is not a framework, an HTTP client, a schema library, or a distributed cache. It does a few common jobs carefully and documents exactly where its guarantees stop.
+
+### The name
+
+Quorin (KWOR-in) is a made-up name drawn from *quorum*, the smallest group that has to be present before a body can act. Quorin aims to be that quorum for TypeScript code: a small set of primitives that, together, are enough to make async work, data handling, and failure handling dependable. The opening sound also echoes *core*, which is where these primitives live in a codebase.
 
 ## Contents
 
-- [Why senu](#why-senu)
+- [Why quorin](#why-quorin)
 - [Install](#install)
 - [Quick start](#quick-start)
 - [Modules](#modules)
-- [senu/struct](#senustruct)
-- [senu/object](#senuobject)
-- [senu/bytes](#senubytes)
-- [senu/async](#senuasync)
-- [senu/result](#senuresult)
-- [senu/boundary](#senuboundary)
-- [senu/resilience](#senuresilience)
-- [senu/cache](#senucache)
-- [senu/state](#senustate)
+- [quorin/struct](#quorinstruct)
+- [quorin/object](#quorinobject)
+- [quorin/bytes](#quorinbytes)
+- [quorin/async](#quorinasync)
+- [quorin/result](#quorinresult)
+- [quorin/boundary](#quorinboundary)
+- [quorin/resilience](#quorinresilience)
+- [quorin/cache](#quorincache)
+- [quorin/state](#quorinstate)
 - [Errors](#errors)
 - [Cancellation model](#cancellation-model)
 - [Runtime support](#runtime-support)
@@ -65,16 +69,16 @@ senu is deliberately small. It is not a framework, an HTTP client, a schema libr
 ## Install
 
 ```sh
-npm install senu
+npm install quorin
 ```
 
 ```sh
-pnpm add senu
-yarn add senu
-bun add senu
+pnpm add quorin
+yarn add quorin
+bun add quorin
 ```
 
-Senu ships one ESM build with type declarations and source maps. On Node 22.12 and later you can also `require('senu')`, because no module in the graph uses top-level await.
+Quorin ships one ESM build with type declarations and source maps. On Node 22.12 and later you can also `require('quorin')`, because no module in the graph uses top-level await.
 
 ## Quick start
 
@@ -82,9 +86,9 @@ A profile loader that validates untrusted input, coalesces concurrent requests, 
 
 ```ts
 import { z } from 'zod';
-import { defineBoundary } from 'senu/boundary';
-import { createCache } from 'senu/cache';
-import { withResilience } from 'senu/resilience';
+import { defineBoundary } from 'quorin/boundary';
+import { createCache } from 'quorin/cache';
+import { withResilience } from 'quorin/resilience';
 
 class TransientReadError extends Error {}
 
@@ -126,28 +130,28 @@ Import everything from the root, or import one module through its subpath. Both 
 
 | Subpath | Purpose | Exports |
 | --- | --- | --- |
-| `senu/struct` | Data structures | `Deque`, `ValueMap`, `Multimap` |
-| `senu/object` | Paths and JSON data | `getPath`, `setPath`, `deepMerge`, `stableStringify`, `SecurityError` |
-| `senu/bytes` | Byte conversion and hashing | `concatBytes`, `equalsBytes`, `stringToBytes`, `bytesToString`, `toHex`, `fromHex`, `toBase64`, `fromBase64`, `fastHash` |
-| `senu/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `QueueError` |
-| `senu/result` | Explicit outcomes | `ok`, `err`, `trySafe`, `trySafeSync`, `isDefect`, `DefectError` |
-| `senu/boundary` | Standard Schema validation | `parseEnv`, `defineBoundary`, `formatIssues`, `BoundaryValidationError` |
-| `senu/resilience` | Retries and deadlines | `withResilience`, `isUserAbort` |
-| `senu/cache` | Bounded local caching | `createCache`, `CacheError` |
-| `senu/state` | Graph copy, compare, redact | `safeClone`, `isEqual`, `redact`, `CLONE_SYMBOL`, `REDACTED`, `TRUNCATED`, `StateError` |
+| `quorin/struct` | Data structures | `Deque`, `ValueMap`, `Multimap` |
+| `quorin/object` | Paths and JSON data | `getPath`, `setPath`, `deepMerge`, `stableStringify`, `SecurityError` |
+| `quorin/bytes` | Byte conversion and hashing | `concatBytes`, `equalsBytes`, `stringToBytes`, `bytesToString`, `toHex`, `fromHex`, `toBase64`, `fromBase64`, `fastHash` |
+| `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `QueueError` |
+| `quorin/result` | Explicit outcomes | `ok`, `err`, `trySafe`, `trySafeSync`, `isDefect`, `DefectError` |
+| `quorin/boundary` | Standard Schema validation | `parseEnv`, `defineBoundary`, `formatIssues`, `BoundaryValidationError` |
+| `quorin/resilience` | Retries and deadlines | `withResilience`, `isUserAbort` |
+| `quorin/cache` | Bounded local caching | `createCache`, `CacheError` |
+| `quorin/state` | Graph copy, compare, redact | `safeClone`, `isEqual`, `redact`, `CLONE_SYMBOL`, `REDACTED`, `TRUNCATED`, `StateError` |
 
 Importing any entry point has no side effects: no timers, no environment access, no DOM access, no network.
 
 ---
 
-## senu/struct
+## quorin/struct
 
 ### `Deque<T>`
 
 A double-ended queue on a growable ring buffer. End operations are amortized O(1).
 
 ```ts
-import { Deque } from 'senu/struct';
+import { Deque } from 'quorin/struct';
 
 const queue = new Deque<string>(); // initialCapacity defaults to 16
 queue.push('b');                    // returns the new size
@@ -176,7 +180,7 @@ Empty reads return `undefined`. If you store `undefined`, use `size` to tell the
 A map whose keys are compared by structure instead of identity.
 
 ```ts
-import { ValueMap } from 'senu/struct';
+import { ValueMap } from 'quorin/struct';
 
 const prices = new ValueMap<{ sku: string; size: string }, number>();
 prices.set({ sku: 'tee', size: 'M' }, 20);
@@ -197,7 +201,7 @@ API: `size`, `set(key, value)` (returns `this`), `get`, `has`, `delete`, `clear`
 A map from each key to an ordered list of values, duplicates included. Keys use native `Map` semantics.
 
 ```ts
-import { Multimap } from 'senu/struct';
+import { Multimap } from 'quorin/struct';
 
 const tags = new Multimap<string, string>();
 tags.add('post-1', 'ts').add('post-1', 'esm');
@@ -211,7 +215,7 @@ API: `size`, `valueCount`, `add(key, value)` (returns `this`), `get`, `has`, `de
 
 ---
 
-## senu/object
+## quorin/object
 
 ### Paths
 
@@ -224,7 +228,7 @@ A path is either an array of segments or a dotted string.
 ### `getPath(target, path, fallback?)`
 
 ```ts
-import { getPath } from 'senu/object';
+import { getPath } from 'quorin/object';
 
 const config = { server: { port: 8080, host: undefined }, tags: ['a'] };
 
@@ -239,7 +243,7 @@ Reads only **own data properties**. Inherited properties count as missing, and a
 ### `setPath(target, path, value)`
 
 ```ts
-import { setPath } from 'senu/object';
+import { setPath } from 'quorin/object';
 
 const settings: Record<string, unknown> = {};
 setPath(settings, ['theme', 'colors', 0], '#fff');
@@ -256,7 +260,7 @@ setPath(settings, ['theme', 'colors', 0], '#fff');
 ### `deepMerge(left, right)`
 
 ```ts
-import { deepMerge } from 'senu/object';
+import { deepMerge } from 'quorin/object';
 
 const merged = deepMerge(
   { db: { host: 'localhost', port: 5432 }, flags: ['a'] },
@@ -270,7 +274,7 @@ Returns a newly allocated graph and never mutates its inputs. Records merge recu
 ### `stableStringify(value, options?)`
 
 ```ts
-import { stableStringify } from 'senu/object';
+import { stableStringify } from 'quorin/object';
 
 stableStringify({ b: 1, a: [2, { d: 1, c: 0 }] });
 // '{"a":[2,{"c":0,"d":1}],"b":1}'
@@ -286,12 +290,12 @@ Traversal is bounded. Functions that walk graphs accept `{ maxDepth, maxNodes }`
 
 ---
 
-## senu/bytes
+## quorin/bytes
 
 All functions operate on the visible bytes of a `Uint8Array` (respecting `byteOffset` and `byteLength`), accept Node `Buffer` instances, and return new buffers. Views over `SharedArrayBuffer` and detached buffers are rejected.
 
 ```ts
-import { concatBytes, toBase64, fromBase64, toHex, fastHash, stringToBytes } from 'senu/bytes';
+import { concatBytes, toBase64, fromBase64, toHex, fastHash, stringToBytes } from 'quorin/bytes';
 
 const bytes = concatBytes(stringToBytes('hello '), stringToBytes('world'));
 toHex(bytes);                                   // '68656c6c6f20776f726c64'
@@ -316,12 +320,12 @@ Malformed hex, base64, and UTF-8 throw a `SyntaxError` with code `INVALID_ENCODI
 
 ---
 
-## senu/async
+## quorin/async
 
 ### `concurrencyLimit(concurrency, { maxPending = 1024 })`
 
 ```ts
-import { concurrencyLimit } from 'senu/async';
+import { concurrencyLimit } from 'quorin/async';
 
 const limit = concurrencyLimit(4, { maxPending: 100 });
 
@@ -345,7 +349,7 @@ limit.clear();      // reject queued tasks with QUEUE_CLEARED
 ### `mapAsync(items, mapper, { concurrency = 4, signal })`
 
 ```ts
-import { mapAsync } from 'senu/async';
+import { mapAsync } from 'quorin/async';
 
 const pages = await mapAsync(urls, async (url, index, { signal }) => {
   const response = await fetch(url, { signal });
@@ -357,14 +361,14 @@ Results are returned in input order. The input array is snapshotted when the cal
 
 ---
 
-## senu/result
+## quorin/result
 
 ### `SafeResult<T, E>`
 
 A result is a **real, frozen, two-element array** that also carries named fields. You can destructure it like a tuple or narrow it through `ok`.
 
 ```ts
-import { ok, err, type SafeResult } from 'senu/result';
+import { ok, err, type SafeResult } from 'quorin/result';
 
 function parsePort(text: string): SafeResult<number, string> {
   const port = Number(text);
@@ -391,7 +395,7 @@ Narrow with `result.ok`. Checking `if (error)` is not reliable because `E` may b
 ### `trySafe(fn, options?)` and `trySafeSync(fn, options?)`
 
 ```ts
-import { trySafe, trySafeSync, DefectError } from 'senu/result';
+import { trySafe, trySafeSync, DefectError } from 'quorin/result';
 
 const parsed = trySafeSync(() => JSON.parse(text)); // SafeResult<any, unknown>
 
@@ -413,7 +417,7 @@ Only `DefectError` (checked with `isDefect`) and values your `classifyDefect` ap
 
 ---
 
-## senu/boundary
+## quorin/boundary
 
 Works with any validator that implements [Standard Schema](https://standardschema.dev) v1, such as Zod, Valibot, and ArkType. The Standard Schema types are vendored, so there is no runtime or type dependency on the spec package.
 
@@ -421,7 +425,7 @@ Works with any validator that implements [Standard Schema](https://standardschem
 
 ```ts
 import { z } from 'zod';
-import { parseEnv } from 'senu/boundary';
+import { parseEnv } from 'quorin/boundary';
 
 const env = await parseEnv(
   z.object({
@@ -432,13 +436,13 @@ const env = await parseEnv(
 );
 ```
 
-The environment source is always passed in explicitly; senu never reads `process` or `Deno` itself. The source is not mutated. It resolves to the schema **output** (so transforms and defaults apply) or rejects with `BoundaryValidationError`. Async validators are supported. A validator that throws propagates unchanged. Error messages never include environment values.
+The environment source is always passed in explicitly; quorin never reads `process` or `Deno` itself. The source is not mutated. It resolves to the schema **output** (so transforms and defaults apply) or rejects with `BoundaryValidationError`. Async validators are supported. A validator that throws propagates unchanged. Error messages never include environment values.
 
 ### `defineBoundary(schema, handler, options?)`
 
 ```ts
 import * as v from 'valibot';
-import { defineBoundary, BoundaryValidationError } from 'senu/boundary';
+import { defineBoundary, BoundaryValidationError } from 'quorin/boundary';
 
 const createUser = defineBoundary(
   v.object({ email: v.pipe(v.string(), v.email()) }),
@@ -464,12 +468,12 @@ formatIssues(error);
 
 ---
 
-## senu/resilience
+## quorin/resilience
 
 ### `withResilience(task, options?)`
 
 ```ts
-import { withResilience, isUserAbort } from 'senu/resilience';
+import { withResilience, isUserAbort } from 'quorin/resilience';
 
 const result = await withResilience(
   async ({ signal, attempt }) => {
@@ -532,12 +536,12 @@ A resolved HTTP 500 response is a successful promise. Inspect the status and thr
 
 ---
 
-## senu/cache
+## quorin/cache
 
 ### `createCache(options)`
 
 ```ts
-import { createCache } from 'senu/cache';
+import { createCache } from 'quorin/cache';
 
 const sessions = createCache<string, Session>({ max: 1_000, ttlMs: 60_000 });
 sessions.set('abc', session);
@@ -606,12 +610,12 @@ Coalescing happens within one cache instance only. It does not prevent stampedes
 
 ---
 
-## senu/state
+## quorin/state
 
 ### `safeClone(value, options?)`
 
 ```ts
-import { safeClone, CLONE_SYMBOL, type CloneContext } from 'senu/state';
+import { safeClone, CLONE_SYMBOL, type CloneContext } from 'quorin/state';
 
 const copy = safeClone({ when: new Date(), tags: new Set(['a']), bytes: new Uint8Array(4) });
 ```
@@ -644,7 +648,7 @@ Register the destination before cloning children. Registering a different destin
 ### `isEqual(a, b, options?)`
 
 ```ts
-import { isEqual } from 'senu/state';
+import { isEqual } from 'quorin/state';
 
 isEqual({ a: [1, { b: 2 }] }, { a: [1, { b: 2 }] }); // true
 isEqual(NaN, NaN);                                   // true
@@ -662,7 +666,7 @@ isEqual(new Set([1, 2]), new Set([2, 1]));           // false: insertion order m
 ### `redact(value, options?)`
 
 ```ts
-import { redact } from 'senu/state';
+import { redact } from 'quorin/state';
 
 logger.info(redact({ user: 'ada', password: 'hunter2', headers: { Authorization: 'Bearer x' } }));
 // { user: 'ada', password: '[REDACTED]', headers: { Authorization: '[REDACTED]' } }
@@ -716,12 +720,12 @@ Codes are part of the public API. Messages may improve between minor versions an
 
 ## Cancellation model
 
-Cancellation means two different things, and senu keeps them apart:
+Cancellation means two different things, and quorin keeps them apart:
 
-1. **The caller stops waiting.** Senu rejects or resolves promptly.
-2. **The operation is asked to stop.** Senu aborts the `AbortSignal` it gave the operation.
+1. **The caller stops waiting.** Quorin rejects or resolves promptly.
+2. **The operation is asked to stop.** Quorin aborts the `AbortSignal` it gave the operation.
 
-An `AbortSignal` cannot preempt synchronous code, undo side effects, or force a promise to settle. Work that ignores its signal keeps running, and senu keeps accounting for it: limiter slots and cache in-flight slots stay occupied until the underlying work settles, and late results are observed so they never become unhandled rejections. Every terminal path removes its listeners and clears its timers. Timeouts run on the event loop, so they cannot interrupt a blocked thread.
+An `AbortSignal` cannot preempt synchronous code, undo side effects, or force a promise to settle. Work that ignores its signal keeps running, and quorin keeps accounting for it: limiter slots and cache in-flight slots stay occupied until the underlying work settles, and late results are observed so they never become unhandled rejections. Every terminal path removes its listeners and clears its timers. Timeouts run on the event loop, so they cannot interrupt a blocked thread.
 
 ## Runtime support
 
@@ -738,18 +742,18 @@ Zero runtime dependencies reduces supply-chain exposure; it does not remove impl
 
 ## Agent skill
 
-senu ships an agent skill that teaches coding agents (Claude Code, Cursor, Codex, and others) how to use the library, how to build packages on top of it, and how to contribute to it. Install it into your project with the [skills CLI](https://github.com/vercel-labs/skills):
+quorin ships an agent skill that teaches coding agents (Claude Code, Cursor, Codex, and others) how to use the library, how to build packages on top of it, and how to contribute to it. Install it into your project with the [skills CLI](https://github.com/vercel-labs/skills):
 
 ```sh
-npx skills add arnonsang/senu
+npx skills add arnonsang/quorin
 ```
 
 ```sh
-npx skills add arnonsang/senu --skill senu -a claude-code   # one agent only
-npx skills add arnonsang/senu -g                            # available in every project
+npx skills add arnonsang/quorin --skill quorin -a claude-code   # one agent only
+npx skills add arnonsang/quorin -g                            # available in every project
 ```
 
-The skill lives in [`skills/senu`](./skills/senu). Every code example in its references is typechecked against the library in CI (`npm run check:skill`).
+The skill lives in [`skills/quorin`](./skills/quorin). Every code example in its references is typechecked against the library in CI (`npm run check:skill`).
 
 ## Development
 
@@ -776,7 +780,7 @@ tests/
   runtime/          behavior and regression tests
   types/            compile-time type tests
   package/          packed tarball tests
-skills/senu/        agent skill (SKILL.md, references, evals)
+skills/quorin/        agent skill (SKILL.md, references, evals)
 ```
 
 To report coverage to Codecov from CI, add a `CODECOV_TOKEN` repository secret.

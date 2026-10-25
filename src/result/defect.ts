@@ -7,7 +7,7 @@ export class DefectError extends Error {
   }
 }
 
-/** Returns true for `DefectError` instances from this installed copy of senu. */
+/** Returns true for `DefectError` instances from this installed copy of quorin. */
 export function isDefect(value: unknown): value is DefectError {
   return value instanceof DefectError;
 }

@@ -4,7 +4,7 @@ import { assertUsableBuffer, hasOnlyIntrinsicKeys, kindOf, typedArrayConstructor
 import { StateError } from './state-error.ts';
 
 /** Method key for custom clone hooks on classes. */
-export const CLONE_SYMBOL: unique symbol = Symbol('senu.clone');
+export const CLONE_SYMBOL: unique symbol = Symbol('quorin.clone');
 
 export interface CloneContext {
   clone<U>(value: U): U;

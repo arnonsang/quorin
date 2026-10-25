@@ -1,57 +1,57 @@
-# Building on top of senu
+# Building on top of quorin
 
-Guidance for libraries, SDKs, framework adapters, and shared service layers that use senu internally or expose it. Every `ts` block here is typechecked against senu in the senu repository.
+Guidance for libraries, SDKs, framework adapters, and shared service layers that use quorin internally or expose it. Every `ts` block here is typechecked against quorin in the quorin repository.
 
 ## Contents
 
 1. [Dependency or peer dependency](#1-dependency-or-peer-dependency)
 2. [Shape your public API](#2-shape-your-public-api)
-3. [Map senu failures into your own errors](#3-map-senu-failures-into-your-own-errors)
+3. [Map quorin failures into your own errors](#3-map-quorin-failures-into-your-own-errors)
 4. [A reusable resource factory](#4-a-reusable-resource-factory)
 5. [Your own Standard Schema validator](#5-your-own-standard-schema-validator)
 6. [Clone hooks for your classes](#6-clone-hooks-for-your-classes)
-7. [Testing a package built on senu](#7-testing-a-package-built-on-senu)
+7. [Testing a package built on quorin](#7-testing-a-package-built-on-quorin)
 8. [Checklist](#8-checklist)
 
 ## 1. Dependency or peer dependency
 
-Some senu values carry identity that only works within one installed copy: `DefectError` and the error classes (`instanceof`), `CLONE_SYMBOL`, and the envelopes `isUserAbort` recognizes. If two copies of senu end up in an application, a `DefectError` thrown by one is not recognized by the other.
+Some quorin values carry identity that only works within one installed copy: `DefectError` and the error classes (`instanceof`), `CLONE_SYMBOL`, and the envelopes `isUserAbort` recognizes. If two copies of quorin end up in an application, a `DefectError` thrown by one is not recognized by the other.
 
-- Your **public types or behavior expose senu** (you return `SafeResult`, accept `RunFailure`, ask users to throw `DefectError`, or document `CLONE_SYMBOL`): make senu a `peerDependency` with a compatible range, and also list it in `devDependencies` for your own tests. The application then installs one copy that everyone shares.
-- senu is a **private implementation detail** (you return plain promises and your own error types): a regular `dependency` is fine.
+- Your **public types or behavior expose quorin** (you return `SafeResult`, accept `RunFailure`, ask users to throw `DefectError`, or document `CLONE_SYMBOL`): make quorin a `peerDependency` with a compatible range, and also list it in `devDependencies` for your own tests. The application then installs one copy that everyone shares.
+- quorin is a **private implementation detail** (you return plain promises and your own error types): a regular `dependency` is fine.
 
 ```json
 {
-  "peerDependencies": { "senu": "^0.1.0" },
-  "devDependencies": { "senu": "^0.1.0" }
+  "peerDependencies": { "quorin": "^0.1.0" },
+  "devDependencies": { "quorin": "^0.1.0" }
 }
 ```
 
-While senu is below 1.0, minor versions may contain breaking changes, so keep the range to one minor (`^0.1.0` already does that).
+While quorin is below 1.0, minor versions may contain breaking changes, so keep the range to one minor (`^0.1.0` already does that).
 
-Import subpaths (`senu/cache`, `senu/resilience`) in library code. It documents what you depend on and keeps your consumers' bundles small. Never import from `senu/dist/...`; only the root and the nine subpaths are public.
+Import subpaths (`quorin/cache`, `quorin/resilience`) in library code. It documents what you depend on and keeps your consumers' bundles small. Never import from `quorin/dist/...`; only the root and the nine subpaths are public.
 
 ## 2. Shape your public API
 
-Follow the same contracts senu follows, so your users get the same guarantees one layer up:
+Follow the same contracts quorin follows, so your users get the same guarantees one layer up:
 
 - Accept an optional `signal` on every async operation and pass it down. Never swallow it.
 - Decide per function whether failures are thrown or returned as `SafeResult`, document it, and do not mix both for the same failure.
 - Give your errors stable `code` values and keep the original error as `cause`.
 - Do not put user data, tokens, or cache keys in error messages.
-- Re-export the senu types that appear in your signatures, so users do not need a direct import for type annotations.
+- Re-export the quorin types that appear in your signatures, so users do not need a direct import for type annotations.
 
 ```ts
-export type { SafeResult } from 'senu/result';
-export type { RunFailure } from 'senu/resilience';
+export type { SafeResult } from 'quorin/result';
+export type { RunFailure } from 'quorin/resilience';
 ```
 
-## 3. Map senu failures into your own errors
+## 3. Map quorin failures into your own errors
 
 Translate `RunFailure` once, at your package boundary, into an error union your users can switch on.
 
 ```ts
-import type { RunFailure } from 'senu/resilience';
+import type { RunFailure } from 'quorin/resilience';
 
 export type ClientErrorCode = 'TIMEOUT' | 'ABORTED' | 'UPSTREAM' | 'RATE_LIMITED';
 
@@ -91,11 +91,11 @@ export function toClientError(failure: RunFailure): ClientError {
 
 ## 4. A reusable resource factory
 
-Package the common combination (bounded cache, coalesced loads, timeouts, safe retries) behind one small API. Keep the senu objects private and expose only what your users need.
+Package the common combination (bounded cache, coalesced loads, timeouts, safe retries) behind one small API. Keep the quorin objects private and expose only what your users need.
 
 ```ts
-import { createCache } from 'senu/cache';
-import { withResilience } from 'senu/resilience';
+import { createCache } from 'quorin/cache';
+import { withResilience } from 'quorin/resilience';
 
 export interface ResourceOptions<K, V> {
   readonly fetch: (key: K, signal: AbortSignal) => Promise<V>;
@@ -151,10 +151,10 @@ export function defineResource<K, V>(options: ResourceOptions<K, V>): Resource<K
 
 ## 5. Your own Standard Schema validator
 
-`senu/boundary` accepts anything implementing Standard Schema v1. A hand-written validator only needs the `~standard` property. Return `{ value }` on success and `{ issues }` on failure; `issues` present (even empty) means failure.
+`quorin/boundary` accepts anything implementing Standard Schema v1. A hand-written validator only needs the `~standard` property. Return `{ value }` on success and `{ issues }` on failure; `issues` present (even empty) means failure.
 
 ```ts
-import { defineBoundary, type StandardSchemaV1 } from 'senu/boundary';
+import { defineBoundary, type StandardSchemaV1 } from 'quorin/boundary';
 
 export function positiveInt(): StandardSchemaV1<unknown, number> {
   return {
@@ -172,14 +172,14 @@ export function positiveInt(): StandardSchemaV1<unknown, number> {
 export const double = defineBoundary(positiveInt(), (count) => count * 2);
 ```
 
-Keep `validate` free of side effects and never throw from it for invalid input: senu treats a throw as an integration bug and rejects instead of returning a validation failure.
+Keep `validate` free of side effects and never throw from it for invalid input: quorin treats a throw as an integration bug and rejects instead of returning a validation failure.
 
 ## 6. Clone hooks for your classes
 
 `safeClone` refuses class instances it cannot rebuild correctly. Implement `[CLONE_SYMBOL]` to opt in. Register the copy before cloning children so cycles and shared references work.
 
 ```ts
-import { CLONE_SYMBOL, safeClone, type CloneContext } from 'senu/state';
+import { CLONE_SYMBOL, safeClone, type CloneContext } from 'quorin/state';
 
 export class Session {
   #token: string;
@@ -209,20 +209,20 @@ export const copy = safeClone(original);
 
 Hooks are trusted code. Keep them free of I/O, and make sure the returned object is fully valid on its own.
 
-## 7. Testing a package built on senu
+## 7. Testing a package built on quorin
 
 - Use controlled promises (resolve or reject them from the test) to order events deterministically.
 - Use `AbortController` to test cancellation, and assert that your code passed the signal down (`taskSignal.aborted === true`).
 - Assert on `code` and `kind`, not on messages.
-- Use short real timeouts (10 to 50 ms) for timeout paths, or inject your own clock at your layer. senu does not expose a clock hook.
-- Install senu from the registry in tests, the same way your users will, so you test against the published contract.
+- Use short real timeouts (10 to 50 ms) for timeout paths, or inject your own clock at your layer. quorin does not expose a clock hook.
+- Install quorin from the registry in tests, the same way your users will, so you test against the published contract.
 
 ## 8. Checklist
 
-- [ ] senu is a peer dependency if any senu type, class, or symbol is part of your API
+- [ ] quorin is a peer dependency if any quorin type, class, or symbol is part of your API
 - [ ] Every async entry point accepts and forwards `signal`
 - [ ] Retries are enabled only for repeatable operations, with an explicit `shouldRetry`
 - [ ] Failures are translated once into your own coded errors with `cause`
 - [ ] Cache keys include tenant, auth scope, and every parameter that changes the result
 - [ ] Logged data goes through `redact`
-- [ ] Imports use `senu/<module>` subpaths, never `senu/dist`
+- [ ] Imports use `quorin/<module>` subpaths, never `quorin/dist`

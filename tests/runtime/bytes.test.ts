@@ -48,7 +48,7 @@ describe('equalsBytes', () => {
 
 describe('text encoding', () => {
   it('round trips Thai and emoji text', () => {
-    const text = 'สวัสดี 👋 senu';
+    const text = 'สวัสดี 👋 quorin';
     assert.equal(bytesToString(stringToBytes(text)), text);
   });
 
@@ -140,7 +140,7 @@ describe('fastHash', () => {
   });
 
   it('returns an unsigned 32-bit integer', () => {
-    const value = fastHash(stringToBytes('senu'));
+    const value = fastHash(stringToBytes('quorin'));
     assert.ok(Number.isInteger(value) && value >= 0 && value <= 0xffffffff);
   });
 

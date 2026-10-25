@@ -1,16 +1,16 @@
 {
-  "name": "senu",
+  "name": "quorin",
   "version": "0.1.0",
   "description": "Modular TypeScript utilities for data structures, bytes, objects, async work, results, validation, retries, caching, and state, with no runtime dependencies.",
   "license": "MIT",
   "author": "arnonsang",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arnonsang/senu.git"
+    "url": "git+https://github.com/arnonsang/quorin.git"
   },
-  "homepage": "https://github.com/arnonsang/senu#readme",
+  "homepage": "https://github.com/arnonsang/quorin#readme",
   "bugs": {
-    "url": "https://github.com/arnonsang/senu/issues"
+    "url": "https://github.com/arnonsang/quorin/issues"
   },
   "keywords": [
     "typescript",
