@@ -781,6 +781,17 @@ skills/senu/        agent skill (SKILL.md, references, evals)
 
 To report coverage to Codecov from CI, add a `CODECOV_TOKEN` repository secret.
 
+### Releasing
+
+Releases are published from CI with [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) and provenance. Bump the version and push the tag:
+
+```sh
+npm version patch   # or minor, major; updates package.json and creates the v* tag
+git push --follow-tags
+```
+
+The `Release` workflow checks that the tag matches `package.json`, runs `npm run check`, and publishes.
+
 ## License
 
 [MIT](./LICENSE). The vendored Standard Schema type declarations are MIT licensed by their authors; see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
