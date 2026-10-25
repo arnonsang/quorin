@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: retry-and-cache-user-fetch
+expected_outcome: |
+  src/users.ts creates one module-level senu cache with a load function and a 30 second TTL,
+  wraps the fetch in withResilience with a 2000 ms attempt timeout, retries 2, retrySafe true,
+  and a shouldRetry that only accepts 503 or network errors, passes the attempt signal to fetch,
+  throws from the loader on failure, and forwards the caller's signal to getOrFetch.

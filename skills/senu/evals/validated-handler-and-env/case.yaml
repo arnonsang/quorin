@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: validated-handler-and-env
+expected_outcome: |
+  src/server.ts calls parseEnv with a zod schema and an explicitly passed process.env, defines the
+  handler with defineBoundary, returns 400 when the failure is a BoundaryValidationError with field
+  errors built from formatIssues, and 500 for other failures, narrowing results with result.ok.
