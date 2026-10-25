@@ -24,6 +24,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run check:skill
       - run: npm run test:coverage
       - run: npm run test:package
       - name: Upload coverage
