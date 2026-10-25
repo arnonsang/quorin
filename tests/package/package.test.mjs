@@ -92,13 +92,24 @@ describe('packed package', () => {
     assert.equal(run(process.execPath, ['--input-type=commonjs', '-e', script], fixture).trim(), 'ok');
   });
 
-  for (const mode of [
-    { module: 'NodeNext', moduleResolution: 'NodeNext' },
-    { module: 'ESNext', moduleResolution: 'Bundler' },
+  const compilers = {
+    current: join(root, 'node_modules/typescript/bin/tsc'),
+    minimum: join(root, 'node_modules/typescript-5.8/bin/tsc'),
+  };
+  for (const { compiler, consumerType, ...mode } of [
+    { compiler: 'current', consumerType: 'module', module: 'NodeNext', moduleResolution: 'NodeNext' },
+    { compiler: 'current', consumerType: 'module', module: 'ESNext', moduleResolution: 'Bundler' },
+    { compiler: 'current', consumerType: 'commonjs', module: 'NodeNext', moduleResolution: 'NodeNext' },
+    { compiler: 'minimum', consumerType: 'module', module: 'NodeNext', moduleResolution: 'NodeNext' },
+    { compiler: 'minimum', consumerType: 'module', module: 'ESNext', moduleResolution: 'Bundler' },
+    { compiler: 'minimum', consumerType: 'commonjs', module: 'NodeNext', moduleResolution: 'NodeNext' },
+    { compiler: 'minimum', consumerType: 'commonjs', module: 'CommonJS', moduleResolution: 'Node10' },
   ]) {
-    it(`type checks a consumer with ${mode.moduleResolution} resolution`, () => {
-      const dir = join(fixture, `types-${mode.moduleResolution.toLowerCase()}`);
+    const label = `${compiler} TypeScript, ${consumerType} consumer, ${mode.moduleResolution} resolution`;
+    it(`type checks a consumer with ${label}`, () => {
+      const dir = join(fixture, `types-${compiler}-${consumerType}-${mode.moduleResolution.toLowerCase()}`);
       mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ private: true, type: consumerType }));
       writeFileSync(join(dir, 'consumer.ts'), `
         import { Deque, ok, type SafeResult } from 'quorin';
         import { createCache } from 'quorin/cache';
@@ -134,7 +145,7 @@ describe('packed package', () => {
         },
         include: ['consumer.ts'],
       }));
-      run(join(root, 'node_modules/.bin/tsc'), ['-p', dir], fixture);
+      run(process.execPath, [compilers[compiler], '-p', dir], fixture);
     });
   }
 });

@@ -30,6 +30,37 @@
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "struct": [
+        "./dist/struct/index.d.ts"
+      ],
+      "object": [
+        "./dist/object/index.d.ts"
+      ],
+      "bytes": [
+        "./dist/bytes/index.d.ts"
+      ],
+      "async": [
+        "./dist/async/index.d.ts"
+      ],
+      "result": [
+        "./dist/result/index.d.ts"
+      ],
+      "boundary": [
+        "./dist/boundary/index.d.ts"
+      ],
+      "resilience": [
+        "./dist/resilience/index.d.ts"
+      ],
+      "cache": [
+        "./dist/cache/index.d.ts"
+      ],
+      "state": [
+        "./dist/state/index.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -97,6 +128,7 @@
     "@types/node": "22.20.5",
     "arktype": "2.2.9",
     "typescript": "7.0.2",
+    "typescript-5.8": "npm:typescript@5.8.3",
     "valibot": "1.5.0",
     "zod": "4.6.7"
   }
