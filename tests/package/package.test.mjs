@@ -70,10 +70,14 @@ describe('packed package', () => {
         }
       }
       if (Object.keys(rootModule).length !== names.size) throw new Error('root exports differ from subpaths');
-      console.log(names.size);
+      console.log('EXPORT_COUNT=' + names.size);
     `;
-    const count = Number(run(process.execPath, ['--input-type=module', '-e', script], fixture).trim());
-    assert.ok(count > 40);
+    const scriptPath = join(fixture, 'identity-check.mjs');
+    writeFileSync(scriptPath, script);
+    const output = run(process.execPath, [scriptPath], fixture);
+    const match = /^EXPORT_COUNT=(\d+)$/m.exec(output);
+    assert.ok(match, `identity check printed no export count:\n${output}`);
+    assert.ok(Number(match[1]) > 40, `expected more than 40 exports, got ${match[1]}:\n${output}`);
   });
 
   it('supports require of the ESM graph', () => {
