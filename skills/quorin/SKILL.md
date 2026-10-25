@@ -15,7 +15,7 @@ npm install quorin
 npm install github:arnonsang/quorin
 ```
 
-ESM only, with declarations. `require('quorin')` also works on Node 22.12+. TypeScript 5.8+ consumers. Zero runtime dependencies.
+ESM only, with declarations. `require('quorin')` also works on every supported Node version (22.19+). TypeScript 5.8+ consumers: ESM projects can use `NodeNext`, `Node16`, or `Bundler`; CommonJS projects need `module: "NodeNext"` (`Node16` and `Node18` report TS1479); legacy `moduleResolution: "node"` resolves subpaths through `typesVersions` on TypeScript 6 and earlier. Zero runtime dependencies.
 
 Import from a subpath when code uses one area (it documents intent and keeps bundles small), or from the root when mixing many. Both resolve to the same objects, so `instanceof` checks agree.
 
