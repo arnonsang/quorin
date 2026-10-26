@@ -1,6 +1,6 @@
 {
   "name": "quorin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Modular TypeScript utilities for data structures, bytes, objects, async work, results, validation, retries, caching, and state, with no runtime dependencies.",
   "license": "MIT",
   "author": "arnonsang",
