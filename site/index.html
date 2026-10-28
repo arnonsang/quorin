@@ -1,0 +1,2552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quorin</title>
+<meta name="description" content="Animated visualizers for quorin, small TypeScript primitives for dependable async work, data, and failure handling.">
+<meta property="og:title" content="Quorin">
+<meta property="og:description" content="Watch each quorin primitive work, next to the quick version it replaces.">
+<meta name="theme-color" content="#1f4dff">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sidebar app with hash routes; each visualizer is a stage card, controls, then code and log side by side. */
+:root {
+  --bg: #f5f7fc;
+  --surface: #ffffff;
+  --surface-2: #eef1fa;
+  --hub: #dfe5ff;
+  --ink: #0b1020;
+  --muted: #5a6282;
+  --line: #dde2f0;
+  --blue: #1f4dff;
+  --sky: #0d9cff;
+  --indigo: #3b25b8;
+  --lilac: #a77bff;
+  --ok: #0e9a63;
+  --warn: #d88600;
+  --bad: #e0434c;
+  --dot-muted: #b4bbd4;
+  --solid: #1f4dff;
+  --solid-ink: #ffffff;
+  --code-bg: #0e1330;
+  --code-ink: #dbe2ff;
+  --code-dim: #7d87b5;
+  --code-hl: rgba(76, 120, 255, 0.3);
+  --font-display: "Nunito", "Varela Round", "Avenir Next", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #080b17; --surface: #10152b; --surface-2: #161c37; --hub: #232c58; --ink: #eef1ff; --muted: #9aa2c7;
+    --line: #252c50; --blue: #5d82ff; --sky: #3db7ff; --indigo: #9383ff; --lilac: #c4a3ff; --ok: #37c88a;
+    --warn: #f2b23c; --bad: #ff6b72; --dot-muted: #485077; --solid: #3157ff; --solid-ink: #ffffff; --code-bg: #0a0e22; --code-ink: #dbe2ff;
+    --code-dim: #6f79a8; --code-hl: rgba(93, 130, 255, 0.28); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #080b17; --surface: #10152b; --surface-2: #161c37; --hub: #232c58; --ink: #eef1ff; --muted: #9aa2c7;
+  --line: #252c50; --blue: #5d82ff; --sky: #3db7ff; --indigo: #9383ff; --lilac: #c4a3ff; --ok: #37c88a;
+  --warn: #f2b23c; --bad: #ff6b72; --dot-muted: #485077; --solid: #3157ff; --solid-ink: #ffffff; --code-bg: #0a0e22; --code-ink: #dbe2ff;
+  --code-dim: #6f79a8; --code-hl: rgba(93, 130, 255, 0.28); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); margin: 0; }
+body { font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+a { color: var(--blue); }
+code, pre, .mono { font-family: var(--font-mono); }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+
+.app { display: grid; grid-template-columns: 252px minmax(0, 1fr); min-height: 100%; }
+.side {
+  position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; height: 100vh; overflow-y: auto;
+  border-right: 1px solid var(--line); background: var(--surface);
+  padding-block: 22px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: 18px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.brand { display: flex; align-items: center; gap: 2px; text-decoration: none; color: var(--ink); }
+.brand .mark { width: 34px; height: 34px; }
+.wordmark { font-family: var(--font-display); font-weight: 900; letter-spacing: -0.01em; line-height: 1; position: relative; }
+.brand .wordmark { font-size: 27px; margin-left: 1px; }
+.dotless { position: relative; display: inline-block; }
+.dotless::after {
+  content: ""; position: absolute; left: 50%; top: -0.13em; width: 0.27em; height: 0.27em; border-radius: 50%;
+  transform: translateX(-50%); background: linear-gradient(135deg, #12a4ff, #1f4dff);
+}
+.nav { display: flex; flex-direction: column; gap: 18px; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; padding: 0 10px 6px; }
+.nav a, .nav span.soon {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; border-radius: 10px;
+  text-decoration: none; color: var(--ink); font-size: 14px;
+}
+.nav a code, .nav span.soon code { font-size: 12.5px; }
+.nav a:hover { background: var(--surface-2); }
+.nav a[aria-current="page"] { background: var(--surface-2); color: var(--blue); font-weight: 600; }
+.nav span.soon { color: var(--muted); }
+.tag { font-size: 10.5px; font-family: var(--font-body); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; color: var(--muted); }
+.side-foot { margin-top: auto; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+
+main { min-width: 0; padding-block: 36px 64px; padding-left: max(28px, env(safe-area-inset-left, 0px)); padding-right: max(28px, env(safe-area-inset-right, 0px)); }
+.page { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+/* Overview */
+.hero { display: flex; flex-direction: column; gap: 4px; padding-block: 12px 8px; }
+.hero h1, .hero-title { font-family: var(--font-display); font-weight: 900; font-size: clamp(52px, 9vw, 92px); margin: 0; line-height: 1; letter-spacing: -0.02em; display: flex; align-items: center; }
+.hero h1 .mark, .hero-title .mark { width: 1.08em; height: 1.08em; margin-right: -0.02em; flex: none; }
+.lead { font-size: 19px; color: var(--muted); margin: 12px 0 0; max-width: 56ch; text-wrap: pretty; }
+.install { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 18px; }
+.cmd { display: inline-flex; align-items: center; gap: 12px; background: var(--code-bg); color: var(--code-ink); border-radius: 12px; padding: 9px 10px 9px 16px; font-family: var(--font-mono); font-size: 14px; max-width: 100%; }
+.cmd .prompt { color: var(--code-dim); }
+button { font: inherit; color: inherit; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 7px 12px; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--blue); }
+.cmd .btn { background: transparent; color: var(--code-ink); border-color: rgba(255,255,255,0.18); padding: 4px 10px; font-size: 12.5px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fact { font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; background: var(--surface); }
+h2 { font-family: var(--font-display); font-weight: 800; font-size: 24px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.section { display: flex; flex-direction: column; gap: 14px; }
+.section > p { margin: 0; color: var(--muted); max-width: 66ch; }
+.legend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.legend-item { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.legend-item svg { flex: none; width: 56px; height: 36px; }
+.legend-item strong { display: block; font-size: 14px; }
+.legend-item span { font-size: 13px; color: var(--muted); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.card { display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; transition: border-color .15s, transform .15s; }
+a.card:hover { border-color: var(--blue); transform: translateY(-2px); }
+.card .preview { border-radius: 10px; background: var(--surface-2); aspect-ratio: 720 / 340; width: 100%; display: block; }
+.card h3 { margin: 0; font-size: 15px; font-family: var(--font-mono); font-weight: 500; }
+.card p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.card.next { border-style: dashed; background: transparent; }
+.card.next h3 { color: var(--muted); }
+
+/* Visualizer */
+.viz-head { display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); letter-spacing: 0.02em; }
+.viz-head h1 { font-family: var(--font-mono); font-weight: 500; font-size: clamp(28px, 4vw, 38px); margin: 0; letter-spacing: -0.02em; }
+.viz-head p { margin: 0; font-size: 17px; max-width: 64ch; text-wrap: pretty; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px; }
+.seg button { border: 0; background: transparent; padding: 7px 14px; border-radius: 9px; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(11, 16, 32, 0.12); }
+.seg button[data-mode="naive"][aria-pressed="true"] { color: var(--bad); }
+.doclink { font-size: 14px; }
+.stage-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.stage { display: block; width: 100%; height: auto; aspect-ratio: 720 / 340; max-width: 100%; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 14px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.legend-row span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-row i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--surface-2); }
+.controls .spacer { flex: 1; }
+.controls label { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+.controls output { font-family: var(--font-mono); color: var(--ink); min-width: 1.5ch; font-variant-numeric: tabular-nums; }
+.controls select { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+input[type="range"] { accent-color: var(--blue); width: 120px; }
+.progress { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.panels { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; }
+.code { background: var(--code-bg); color: var(--code-ink); border-radius: var(--radius); padding: 14px 0; overflow-x: auto; font-size: 13px; line-height: 1.7; margin: 0; }
+.code .ln { display: block; padding: 0 18px; white-space: pre; border-left: 3px solid transparent; transition: background .2s; }
+.code .ln.hl { background: var(--code-hl); border-left-color: var(--sky); }
+.code .c { color: var(--code-dim); }
+.code .k { color: #c59bff; }
+.code .s { color: #7fe3b8; }
+.code .n { color: #ffb86b; }
+.side-panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.box h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; min-height: 9.5em; }
+.log li { display: grid; grid-template-columns: 3.4em minmax(0, 1fr); gap: 8px; }
+.log li .t { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.log li:last-child { font-weight: 600; }
+.notice { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.notice.naive li::marker { color: var(--bad); }
+.notice.quorin li::marker { color: var(--ok); }
+
+/* Bento overview */
+.bento { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 22px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.tile-hero { grid-column: span 4; grid-row: span 2; justify-content: space-between; padding: 30px 30px 26px; gap: 22px; }
+.tile-install { grid-column: span 2; background: var(--solid); border-color: transparent; color: var(--solid-ink); justify-content: space-between; }
+.tile-live { grid-column: span 2; padding: 0; overflow: hidden; text-decoration: none; color: var(--ink); gap: 0; transition: border-color .15s; }
+.tile-live:hover { border-color: var(--blue); }
+.tile-code { grid-column: span 4; padding: 0; overflow: hidden; background: var(--code-bg); border-color: transparent; gap: 0; }
+.tile-stats { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-content: center; }
+.tile-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--muted); }
+.tile-install .tile-label { color: rgba(255, 255, 255, 0.78); }
+.tile-install .cmdline { font-family: var(--font-mono); font-size: 17px; word-break: break-word; }
+.tile-install .cmdline .prompt { opacity: 0.7; margin-right: 8px; }
+.tile-install p { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, 0.86); }
+.btn-on-solid { border: 1px solid rgba(255, 255, 255, 0.5); background: transparent; color: #fff; border-radius: 10px; padding: 6px 12px; cursor: pointer; font-size: 13.5px; font-weight: 600; align-self: flex-start; }
+.btn-on-solid:hover { background: rgba(255, 255, 255, 0.14); }
+.btn-on-solid:focus-visible { outline-color: #fff; }
+.tile-live .preview { border-radius: 0; background: var(--surface-2); aspect-ratio: 720 / 340; width: 100%; display: block; }
+.tile-live .live-cap { padding: 12px 16px 14px; display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 13.5px; }
+.tile-live .live-cap code { font-size: 13px; }
+.tile-live .live-cap span { color: var(--muted); }
+.code-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 10px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); color: var(--code-dim); font-family: var(--font-mono); font-size: 12.5px; }
+.code-head .btn { background: transparent; color: var(--code-ink); border-color: rgba(255, 255, 255, 0.18); padding: 3px 10px; font-size: 12.5px; }
+.tile-code .code { border-radius: 0; background: transparent; padding: 14px 0 16px; font-size: 12.5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.chips code { font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; background: var(--surface-2); }
+.stat-num { font-family: var(--font-display); font-weight: 900; font-size: 38px; line-height: 1; letter-spacing: -0.02em; color: var(--blue); }
+.stat-txt { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.hero-top { display: flex; flex-direction: column; gap: 10px; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn-solid { background: var(--solid); color: var(--solid-ink); border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; font-size: 14.5px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.btn-solid:hover { filter: brightness(1.08); }
+.btn-ghost { color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 12px; padding: 9px 15px; font-weight: 600; font-size: 14.5px; }
+.btn-ghost:hover { border-color: var(--blue); }
+.hint { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--surface); color: var(--ink); }
+.group-title { font-family: var(--font-display); font-weight: 800; font-size: 16px; margin: 6px 0 0; color: var(--muted); }
+.legend-row .keys { margin-left: auto; gap: 4px; }
+
+/* Downloads */
+.dl { grid-column: 1 / -1; display: flex; flex-direction: column; }
+.spark-wrap { position: relative; height: 48px; margin-top: 12px; cursor: crosshair; }
+.spark { display: block; width: 100%; height: 100%; overflow: visible; }
+.spark-line { fill: none; stroke: var(--blue); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.spark-area { fill: var(--blue); opacity: 0.1; }
+.spark-x { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--muted); opacity: 0; pointer-events: none; }
+.spark-wrap.hover .spark-x { opacity: 0.5; }
+.spark-dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 2px var(--surface); transform: translate(-50%, -50%); pointer-events: none; }
+.dl-cap { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 6px; min-height: 1.5em; }
+.dl.off .spark-wrap, .dl.off .stat-num { display: none; }
+.dl.loading .stat-num { opacity: 0.35; }
+
+/* Footer */
+.main-col { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+.main-col main { flex: 1; }
+.foot { border-top: 1px solid var(--line); padding-block: 18px calc(18px + env(safe-area-inset-bottom, 0px)); padding-left: max(28px, env(safe-area-inset-left, 0px)); padding-right: max(28px, env(safe-area-inset-right, 0px)); }
+.foot-in { max-width: 1040px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: space-between; font-size: 13.5px; color: var(--muted); }
+.foot a { color: var(--ink); font-weight: 600; }
+.heart { color: var(--bad); }
+
+/* Command palette */
+.search { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); border-radius: 12px; padding: 8px 10px; cursor: pointer; font-size: 13.5px; }
+.search:hover { border-color: var(--blue); }
+.palette { border: 0; padding: 0; background: transparent; width: min(560px, calc(100vw - 32px)); margin: 12vh auto auto; color: var(--ink); }
+.palette::backdrop { background: rgba(8, 11, 23, 0.45); }
+.palette-box { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 24px 60px rgba(8, 11, 23, 0.28); overflow: hidden; }
+.palette input { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-size: 16px; padding: 16px 18px; outline: none; }
+.palette ul { list-style: none; margin: 0; padding: 6px; max-height: 50vh; overflow-y: auto; }
+.palette li { display: flex; flex-direction: column; gap: 1px; padding: 9px 12px; border-radius: 10px; cursor: pointer; }
+.palette li code { font-size: 13.5px; }
+.palette li span { font-size: 12.5px; color: var(--muted); }
+.palette li[aria-selected="true"] { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--blue); }
+.palette li.empty { color: var(--muted); cursor: default; }
+.palette-foot { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+
+/* Motion: route morphs and scroll reveal */
+[data-stage] { view-transition-name: stage; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .22s; }
+::view-transition-group(stage) { animation-duration: .5s; animation-timing-function: cubic-bezier(.2, 1.15, .3, 1); }
+@keyframes rise { from { transform: translateY(18px) scale(.985); } to { transform: none; } }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% cover 20%; }
+  }
+}
+
+/* SVG */
+.goo circle, .goo line { transition: none; }
+.big { font-family: var(--font-display); font-weight: 900; font-size: 24px; fill: var(--ink); }
+.lbl { font-family: var(--font-mono); font-size: 11px; font-weight: 500; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.cap { font-family: var(--font-body); font-size: 12.5px; fill: var(--muted); }
+.cap-strong { font-family: var(--font-mono); font-size: 12.5px; fill: var(--ink); }
+.ring { fill: none; stroke-width: 2; stroke-dasharray: 4 4; animation: spin 1.2s linear infinite; }
+@keyframes spin { to { stroke-dashoffset: -16; } }
+@media (prefers-reduced-motion: reduce) { .ring { animation: none; } a.card:hover { transform: none; } }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 12px; }
+  .nav { flex-direction: row; gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+  .nav-group { flex-direction: row; align-items: center; flex: none; }
+  .nav-label { display: none; }
+  .nav a, .nav span.soon { white-space: nowrap; }
+  .nav span.soon { display: none; }
+  .side-foot { display: none; }
+  main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px; }
+  .panels { grid-template-columns: minmax(0, 1fr); }
+  .search, .hint { display: none; }
+  .main-col { min-height: 0; }
+  .foot { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .bento { grid-template-columns: minmax(0, 1fr); }
+  .tile-hero, .tile-install, .tile-live, .tile-code, .tile-stats { grid-column: auto; grid-row: auto; }
+  .tile-hero { padding: 22px; }
+  .legend-row .keys { display: none; }
+}
+@media (min-width: 901px) and (max-width: 1180px) {
+  .tile-hero { grid-column: span 6; grid-row: auto; }
+  .tile-install, .tile-live { grid-column: span 3; }
+  .tile-code, .tile-stats { grid-column: span 6; }
+  .tile-stats { grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="q-ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12a4ff"/><stop offset="0.45" stop-color="#1f4dff"/><stop offset="1" stop-color="#3a1fb0"/>
+    </linearGradient>
+    <linearGradient id="q-tail" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2148ff"/><stop offset="1" stop-color="#c79bff"/>
+    </linearGradient>
+    <radialGradient id="q-core" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#2d6bff"/><stop offset="1" stop-color="#1638d8"/>
+    </radialGradient>
+    <filter id="q-goo" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="b"/>
+      <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="g"/>
+      <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+    </filter>
+    <symbol id="mark" viewBox="0 0 120 120">
+      <g filter="url(#q-goo)">
+        <circle cx="52" cy="52" r="35" fill="none" stroke="url(#q-ring)" stroke-width="19"/>
+        <circle cx="52" cy="52" r="11.5" fill="url(#q-core)"/>
+        <path d="M52 52 C 62 64, 74 74, 93 92" fill="none" stroke="url(#q-tail)" stroke-width="7.5" stroke-linecap="round"/>
+        <circle cx="95" cy="94" r="12.5" fill="url(#q-tail)"/>
+      </g>
+    </symbol>
+    <filter id="goo" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/>
+      <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="g"/>
+      <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="app">
+  <aside class="side">
+    <a class="brand" href="#overview" aria-label="Quorin home">
+      <svg class="mark" aria-hidden="true"><use href="#mark"/></svg>
+      <span class="wordmark">uor<span class="dotless">ı</span>n</span>
+    </a>
+    <button class="search" type="button" id="open-palette"><span>Jump to</span><kbd id="palette-key">Ctrl K</kbd></button>
+    <nav class="nav" id="nav" aria-label="Sections"></nav>
+    <div class="side-foot">
+      <span>0.2.0 preview</span>
+      <a href="https://github.com/arnonsang/quorin">GitHub</a>
+      <a href="https://www.npmjs.com/package/quorin">npm</a>
+    </div>
+  </aside>
+  <div class="main-col">
+    <main id="main"></main>
+    <footer class="foot">
+      <div class="foot-in">
+        <span>Made with <span class="heart" role="img" aria-label="love">♥</span> by <a href="https://iamickdev.com">arnonsang</a></span>
+        <span>MIT License</span>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<dialog class="palette" id="palette" aria-label="Jump to a primitive">
+  <div class="palette-box">
+    <input id="palette-input" type="text" role="combobox" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" placeholder="Jump to a primitive" autocomplete="off" spellcheck="false">
+    <ul id="palette-list" role="listbox" aria-label="Pages"></ul>
+    <div class="palette-foot"><kbd>↑</kbd><kbd>↓</kbd> move <kbd>Enter</kbd> open <kbd>Esc</kbd> close</div>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  const DOCS = 'https://github.com/arnonsang/quorin/blob/main/docs/';
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+  const spring = (k) => (k >= 1 ? 1 : 1 - Math.exp(-7 * k) * Math.cos(8 * k));
+  const col = (i, n, gap, center = 170) => center + (i - (n - 1) / 2) * gap;
+  const slug = (heading) => heading.toLowerCase().replace(/[^a-z0-9_\- ]/g, '').replace(/ /g, '-');
+  const store = {
+    get(key) { try { return localStorage.getItem(key); } catch { return null; } },
+    set(key, value) { try { localStorage.setItem(key, value); } catch { /* storage unavailable */ } },
+  };
+  const isTyping = (el) => !!(el && el.closest && el.closest('input, select, textarea, button, a, [contenteditable="true"]'));
+
+  function timeline() {
+    const frames = [];
+    let ents = {};
+    let links = [];
+    let hud = {};
+    return {
+      frames,
+      set(id, p) { ents[id] = Object.assign({ r: 11 }, ents[id] || {}, p); },
+      del(id) { delete ents[id]; },
+      link(a, b) { links.push([a, b]); },
+      unlink() { links = []; },
+      hud(p) { hud = Object.assign({}, hud, p); },
+      push(dur, lines, log, t) {
+        frames.push({ dur, lines, log, t, ents: JSON.parse(JSON.stringify(ents)), links: links.slice(), hud: Object.assign({}, hud) });
+      },
+    };
+  }
+
+  const svgText = (x, y, text, cls = 'cap', anchor = 'start', extra = '') =>
+    `<text x="${x}" y="${y}" class="${cls}" text-anchor="${anchor}" ${extra}>${esc(text)}</text>`;
+  const pill = (x, y, w, h, stroke = 'line', fill = 'surface-2', dash = '') =>
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" style="fill:var(--${fill});stroke:var(--${stroke})" stroke-width="1.5" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`;
+
+  /* ---------------- Channel ---------------- */
+  const channelScene = {
+    id: 'channel',
+    name: 'Channel',
+    subpath: 'quorin/async',
+    doc: 'concurrency.md#channelt',
+    use: 'Hand jobs from a fast producer to a slower consumer without letting the backlog grow without limit.',
+    param: { label: 'Capacity', min: 0, max: 4, value: 2 },
+    fixedInNaive: true,
+    legend: [['blue', 'job'], ['lilac', 'being handled'], ['ok', 'done']],
+    notice: {
+      quorin: [
+        'When the buffer is full, <code>send</code> waits. The producer slows down to the consumer\'s pace.',
+        'Memory never holds more than capacity plus one waiting send.',
+        'With capacity 0, every job is handed straight from producer to consumer.',
+      ],
+      naive: [
+        'The producer never waits, so the queue keeps growing while the consumer falls behind.',
+        'Nothing tells the producer to slow down. Under load this is how a process runs out of memory.',
+      ],
+    },
+    code(mode, cap) {
+      return mode === 'quorin'
+        ? [
+            `<span class="k">const</span> jobs = <span class="k">new</span> Channel&lt;Job&gt;(<span class="n">${cap}</span>);`,
+            '',
+            '<span class="c">// producer</span>',
+            '<span class="k">for</span> (<span class="k">const</span> job <span class="k">of</span> source) {',
+            '  <span class="k">await</span> jobs.send(job); <span class="c">// waits while full</span>',
+            '}',
+            'jobs.close();',
+            '',
+            '<span class="c">// consumer</span>',
+            '<span class="k">for await</span> (<span class="k">const</span> job <span class="k">of</span> jobs) {',
+            '  <span class="k">await</span> handle(job);',
+            '}',
+          ]
+        : [
+            '<span class="k">const</span> queue: Job[] = [];',
+            '',
+            '<span class="c">// producer</span>',
+            'source.on(<span class="s">\'job\'</span>, (job) =&gt; {',
+            '  queue.push(job); <span class="c">// never waits</span>',
+            '});',
+            '',
+            '<span class="c">// consumer</span>',
+            '<span class="k">while</span> (<span class="k">true</span>) {',
+            '  <span class="k">const</span> job = queue.shift();',
+            '  <span class="k">if</span> (job) <span class="k">await</span> handle(job);',
+            '}',
+          ];
+    },
+    hubs: () => [
+      { x: 104, y: 170, r: 26, fill: 'hub' },
+      { x: 618, y: 170, r: 28, fill: 'hub' },
+    ],
+    stat(mode, cap) {
+      let s = svgText(104, 218, 'producer', 'cap', 'middle') + svgText(618, 218, 'consumer', 'cap', 'middle');
+      if (mode === 'quorin') {
+        const w = cap > 0 ? cap * 56 + 18 : 46;
+        s += pill(226, 147, w, 46);
+        for (let i = 0; i < cap; i++) s += `<circle cx="${250 + i * 56}" cy="170" r="13" style="fill:none;stroke:var(--line)" stroke-dasharray="3 3" stroke-width="1.5"/>`;
+        s += svgText(226, 134, `new Channel(${cap})`, 'cap-strong');
+        if (cap === 0) s += svgText(226 + 23, 213, 'hand-off', 'cap', 'middle');
+      } else {
+        s += `<rect x="226" y="128" width="300" height="134" rx="18" style="fill:var(--surface-2);stroke:var(--bad)" stroke-dasharray="5 5" stroke-width="1.5"/>`;
+        s += svgText(226, 118, 'queue: Job[] (no limit)', 'cap-strong');
+      }
+      s += svgText(560, 300, 'done', 'cap');
+      return s;
+    },
+    hud(h, mode, cap) {
+      const max = 12;
+      const held = Math.round(h.mem || 0);
+      const w = Math.min(held / max, 1) * 300;
+      const over = mode === 'naive' && held > cap + 1;
+      let s = svgText(226, 34, 'held in memory', 'cap') + svgText(526, 34, String(held), 'cap-strong', 'end');
+      s += `<rect x="226" y="44" width="300" height="8" rx="4" style="fill:var(--surface-2)"/>`;
+      s += `<rect x="226" y="44" width="${w}" height="8" rx="4" style="fill:var(--${over ? 'bad' : 'ok'})"/>`;
+      if (mode === 'quorin') {
+        const lx = 226 + ((cap + 1) / max) * 300;
+        s += `<line x1="${lx}" y1="40" x2="${lx}" y2="56" style="stroke:var(--ink)" stroke-width="1.5"/>`;
+        s += svgText(lx, 72, `limit ${cap + 1}`, 'cap', 'middle');
+      }
+      if (h.producer) s += svgText(104, 128, h.producer, 'cap', 'middle', `style="fill:var(--${h.producer === 'waiting' ? 'warn' : 'muted'})"`);
+      return s;
+    },
+    build(mode, cap) {
+      const T = timeline();
+      const N = mode === 'quorin' ? 7 : 16;
+      const HANDLE = 3;
+      const P = { x: 104, y: 170 };
+      const slot = (i) => ({ x: 250 + i * 56, y: 170 });
+      const waitPos = { x: 178, y: 170 };
+      const C = { x: 618, y: 170 };
+      const grid = (i) => ({ x: 248 + (i % 8) * 36, y: 150 + Math.floor(i / 8) * 34 });
+      const donePos = (i) => ({ x: 560 + (i % 9) * 15, y: 318 - Math.floor(i / 9) * 0 });
+      let buffer = [];
+      let waiting = null;
+      let handling = null;
+      let done = 0;
+      let next = 1;
+      T.hud({ mem: 0, producer: 'ready' });
+      T.push(500, [], 'Producer and consumer start. The consumer needs 3 ticks per job.', 0);
+      for (let t = 1; t <= 40; t++) {
+        const logs = [];
+        const lines = new Set();
+        if (handling && t >= handling.until) {
+          const p = donePos(done++);
+          T.set('v' + handling.v, { x: p.x, y: p.y, r: 5, fill: 'ok', label: '' });
+          logs.push(`job ${handling.v} done`);
+          handling = null;
+        }
+        if (!handling) {
+          if (buffer.length) {
+            const v = buffer.shift();
+            handling = { v, until: t + HANDLE };
+            T.set('v' + v, { x: C.x, y: C.y, fill: 'lilac', ring: false });
+            logs.push(`consumer received job ${v}`);
+            lines.add(mode === 'quorin' ? 9 : 9);
+            if (waiting !== null) {
+              buffer.push(waiting);
+              logs.push(`the waiting send of job ${waiting} completes`);
+              T.set('v' + waiting, { ring: false });
+              waiting = null;
+            }
+          } else if (waiting !== null) {
+            handling = { v: waiting, until: t + HANDLE };
+            T.set('v' + waiting, { x: C.x, y: C.y, fill: 'lilac', ring: false });
+            logs.push(`job ${waiting} handed straight to the consumer`);
+            lines.add(9);
+            waiting = null;
+          }
+        }
+        if (next <= N && (mode === 'naive' || waiting === null)) {
+          const v = next++;
+          T.set('v' + v, { x: P.x, y: P.y, sx: P.x, sy: P.y, fill: 'blue', label: String(v), r: 11 });
+          if (mode === 'naive' || buffer.length < cap) {
+            buffer.push(v);
+            logs.push(mode === 'naive' ? `pushed job ${v}` : `sent job ${v} into the buffer`);
+            lines.add(4);
+          } else {
+            waiting = v;
+            logs.push(`send(job ${v}) waits: the channel is full`);
+            lines.add(4);
+          }
+        }
+        buffer.forEach((v, i) => {
+          const p = mode === 'quorin' ? slot(i) : grid(i);
+          T.set('v' + v, { x: p.x, y: p.y, fill: 'blue', ring: false });
+        });
+        if (waiting !== null) T.set('v' + waiting, { x: waitPos.x, y: waitPos.y, ring: 'warn' });
+        if (handling) lines.add(10);
+        T.hud({ mem: buffer.length + (waiting !== null ? 1 : 0), producer: waiting !== null ? 'waiting' : next > N ? 'finished' : 'producing' });
+        T.push(560, [...lines], logs.join('. '), t);
+        if (mode === 'quorin' && done === N) break;
+        if (mode === 'naive' && t >= 16) {
+          T.push(900, [4], `the queue holds ${buffer.length} jobs and keeps growing`, t);
+          break;
+        }
+      }
+      if (mode === 'quorin') {
+        T.hud({ producer: 'closed' });
+        T.push(700, [6], 'producer closes the channel; the loop ends after the last job', '');
+      }
+      return T.frames;
+    },
+  };
+
+  /* ---------------- select ---------------- */
+  const selectScene = {
+    id: 'select',
+    name: 'select',
+    subpath: 'quorin/async',
+    doc: 'concurrency.md#selectcases-options',
+    use: 'Wait for whichever of several channels, timers, or aborts happens first, and take exactly one.',
+    param: { label: 'Rounds', min: 1, max: 4, value: 2 },
+    legend: [['blue', 'job on a'], ['sky', 'job on b'], ['indigo', 'waiting receive'], ['bad', 'lost job']],
+    notice: {
+      quorin: [
+        'Both jobs arrive in the same tick, but only one case wins. The other job stays in its channel.',
+        'The next select finds the kept job ready and takes it at once. Nothing is lost.',
+        'With no jobs, <code>after(1000)</code> wins and the loop can do idle work.',
+      ],
+      naive: [
+        '<code>Promise.race</code> starts two receives, and both of them take a job.',
+        'Only one result is used. The other job was already removed from its channel and is gone.',
+        'There is no timeout case, so an idle loop waits forever.',
+      ],
+    },
+    code(mode) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">while</span> (running) {',
+            '  <span class="k">const</span> [value, index] = <span class="k">await</span> select([',
+            '    receive(a), receive(b), after(<span class="n">1000</span>),',
+            '  ]);',
+            '  <span class="k">if</span> (index === <span class="n">2</span>) <span class="k">continue</span>; <span class="c">// timeout</span>',
+            '  <span class="k">if</span> (value.ok) <span class="k">await</span> handle(value.value);',
+            '}',
+          ]
+        : [
+            '<span class="k">while</span> (running) {',
+            '  <span class="k">const</span> job = <span class="k">await</span> Promise.race([',
+            '    a.receive(), b.receive(),',
+            '  ]);',
+            '  <span class="k">await</span> handle(job);',
+            '}',
+          ];
+    },
+    hubs: () => [
+      { x: 452, y: 170, r: 20, fill: 'hub' },
+      { x: 630, y: 170, r: 28, fill: 'hub' },
+    ],
+    stat(mode) {
+      let s = pill(46, 73, 300, 44) + pill(46, 223, 300, 44);
+      s += svgText(46, 62, 'channel a', 'cap-strong') + svgText(46, 212, 'channel b', 'cap-strong');
+      s += `<path d="M346 95 C 400 95, 410 160, 432 166" style="fill:none;stroke:var(--line)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+      s += `<path d="M346 245 C 400 245, 410 180, 432 174" style="fill:none;stroke:var(--line)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+      s += svgText(452, 210, mode === 'quorin' ? 'select' : 'Promise.race', 'cap', 'middle');
+      s += svgText(630, 218, 'consumer', 'cap', 'middle');
+      if (mode === 'naive') {
+        s += `<rect x="402" y="262" width="100" height="56" rx="16" style="fill:none;stroke:var(--bad)" stroke-dasharray="5 5" stroke-width="1.5"/>`;
+        s += svgText(452, 334, 'taken, never read', 'cap', 'middle');
+      }
+      return s;
+    },
+    hud(h, mode) {
+      let s = '';
+      if (mode === 'quorin') {
+        const k = Math.max(0, Math.min(1, h.timer || 0));
+        s += svgText(452, 84, 'after(1000)', 'cap-strong', 'middle');
+        s += `<rect x="408" y="96" width="88" height="7" rx="3.5" style="fill:var(--surface-2)"/>`;
+        s += `<rect x="408" y="96" width="${88 * k}" height="7" rx="3.5" style="fill:var(--${k >= 1 ? 'warn' : 'indigo'})"/>`;
+      } else {
+        s += svgText(630, 300, `lost: ${Math.round(h.lost || 0)}`, 'cap-strong', 'middle', `style="fill:var(--${(h.lost || 0) > 0.5 ? 'bad' : 'muted'})"`);
+      }
+      if (h.status) s += svgText(630, 128, h.status, 'cap', 'middle');
+      return s;
+    },
+    build(mode, rounds) {
+      const T = timeline();
+      const aStart = { x: 66, y: 95 };
+      const bStart = { x: 66, y: 245 };
+      const aEnd = { x: 316, y: 95 };
+      const bEnd = { x: 316, y: 245 };
+      const S = { x: 452, y: 170 };
+      const C = { x: 630, y: 170 };
+      let handled = 0;
+      let lost = 0;
+      const donePos = () => ({ x: 600 + (handled % 5) * 14, y: 258 + Math.floor(handled / 5) * 14 });
+      const waiters = () => {
+        T.set('wa', { x: 338, y: 95, r: 6, fill: 'indigo', ring: 'indigo' });
+        T.set('wb', { x: 338, y: 245, r: 6, fill: 'indigo', ring: 'indigo' });
+      };
+      const finish = (id) => {
+        const p = donePos();
+        handled++;
+        T.set(id, { x: p.x, y: p.y, r: 5, fill: 'ok', label: '' });
+      };
+      T.hud({ timer: 0, lost: 0, status: '' });
+      for (let r = 1; r <= rounds; r++) {
+        waiters();
+        T.hud({ timer: 0, status: 'waiting' });
+        T.push(600, [1, 2], mode === 'quorin' ? 'select waits on receive(a), receive(b), and after(1000)' : 'Promise.race starts a.receive() and b.receive()', '');
+        T.set('a' + r, { x: aEnd.x, y: aEnd.y, sx: aStart.x, sy: aStart.y, fill: 'blue', label: 'a' + r });
+        T.set('b' + r, { x: bEnd.x, y: bEnd.y, sx: bStart.x, sy: bStart.y, fill: 'sky', label: 'b' + r });
+        T.hud({ timer: 0.3 });
+        T.push(800, [1], `a${r} and b${r} arrive in the same tick`, '');
+        if (mode === 'quorin') {
+          const win = r % 2 === 1 ? 'b' : 'a';
+          const keep = win === 'a' ? 'b' : 'a';
+          T.del('wa');
+          T.del('wb');
+          T.set(win + r, { x: S.x, y: S.y });
+          T.set(keep + r, { label: keep + r });
+          T.hud({ timer: 0 });
+          T.push(700, [1, 2], `case receive(${win}) wins at random; ${keep}${r} stays in channel ${keep}`, '');
+          T.set(win + r, { x: C.x, y: C.y, fill: 'lilac' });
+          T.hud({ status: 'handling ' + win + r });
+          T.push(650, [5], `handle(${win}${r})`, '');
+          finish(win + r);
+          T.set(keep + r, { x: S.x, y: S.y });
+          T.hud({ status: '' });
+          T.push(650, [1, 2], `the next select finds ${keep}${r} ready and takes it at once`, '');
+          T.set(keep + r, { x: C.x, y: C.y, fill: 'lilac' });
+          T.hud({ status: 'handling ' + keep + r });
+          T.push(650, [5], `handle(${keep}${r})`, '');
+          finish(keep + r);
+          T.hud({ status: '' });
+        } else {
+          T.del('wa');
+          T.del('wb');
+          T.set('a' + r, { x: S.x, y: S.y });
+          T.set('b' + r, { x: S.x + 6, y: S.y + 22 });
+          T.push(700, [1, 2], 'both receives take a job from their channel', '');
+          T.set('a' + r, { x: C.x, y: C.y, fill: 'lilac' });
+          lost++;
+          T.set('b' + r, { x: 430 + ((lost - 1) % 3) * 22, y: 290, fill: 'bad', broken: true });
+          T.hud({ lost, status: 'handling a' + r });
+          T.push(800, [4], `the race resolves with a${r}; b${r} was taken by the losing receive and is never read`, '');
+          finish('a' + r);
+          T.hud({ status: '' });
+        }
+      }
+      waiters();
+      T.hud({ timer: 0, status: 'waiting' });
+      T.push(600, [1, 2], 'no more jobs arrive', '');
+      if (mode === 'quorin') {
+        T.hud({ timer: 1 });
+        T.push(1400, [2], 'waiting...', '');
+        T.del('wa');
+        T.del('wb');
+        T.hud({ status: 'idle tick' });
+        T.push(600, [4], 'after(1000) wins: index 2, the loop can do idle work and try again', '');
+      } else {
+        T.hud({ status: 'waiting forever' });
+        T.push(1600, [1, 2], 'nothing arrives, and with no timeout case the loop waits forever', '');
+      }
+      return T.frames;
+    },
+  };
+
+  /* ---------------- Task group ---------------- */
+  const groupScene = {
+    id: 'task-group',
+    name: 'createTaskGroup',
+    subpath: 'quorin/async',
+    doc: 'concurrency.md#createtaskgroupoptions',
+    use: 'Run related jobs together, cap how many run at once, and stop all of them cleanly when one fails.',
+    param: { label: 'Concurrency', min: 1, max: 4, value: 2 },
+    fixedInNaive: true,
+    legend: [['dot-muted', 'queued'], ['blue', 'running'], ['ok', 'done'], ['bad', 'failed'], ['warn', 'running, nobody waiting']],
+    notice: {
+      quorin: [
+        'At most <code>concurrency</code> jobs run; the rest wait in order.',
+        'When region 3 fails, the group signal aborts: running jobs stop and queued jobs never start.',
+        '<code>wait()</code> resolves only after every started job has settled, so nothing keeps running in the background.',
+      ],
+      naive: [
+        '<code>Promise.all</code> starts every job at once. There is no limit.',
+        'It rejects as soon as region 3 fails, and the caller moves on.',
+        'The other jobs keep running with nobody waiting for them, and a later failure becomes an unhandled rejection.',
+      ],
+    },
+    code(mode, c) {
+      return mode === 'quorin'
+        ? [
+            `<span class="k">const</span> group = createTaskGroup&lt;Report&gt;({ concurrency: <span class="n">${c}</span> });`,
+            '<span class="k">for</span> (<span class="k">const</span> region <span class="k">of</span> regions) {',
+            '  group.run(({ signal }) =&gt; build(region, signal));',
+            '}',
+            '<span class="k">const</span> result = <span class="k">await</span> group.wait();',
+            '<span class="k">if</span> (!result.ok) report(result.error);',
+          ]
+        : [
+            '<span class="k">const</span> reports = <span class="k">await</span> Promise.all(',
+            '  regions.map((region) =&gt; build(region)),',
+            ');',
+            '<span class="c">// one failure rejects here, the rest keep running</span>',
+          ];
+    },
+    hubs: () => [],
+    stat() {
+      let s = '';
+      for (let i = 0; i < 6; i++) {
+        const y = 78 + i * 42;
+        s += svgText(24, y + 4, `region ${i + 1}`, 'cap');
+        s += `<line x1="200" y1="${y}" x2="600" y2="${y}" style="stroke:var(--line)" stroke-width="2" stroke-linecap="round"/>`;
+        s += `<line x1="600" y1="${y - 8}" x2="600" y2="${y + 8}" style="stroke:var(--line)" stroke-width="2"/>`;
+      }
+      s += svgText(160, 52, 'queue', 'cap', 'middle') + svgText(400, 52, 'running', 'cap', 'middle') + svgText(600, 52, 'done', 'cap', 'middle');
+      return s;
+    },
+    hud(h, mode) {
+      const sig = h.signal || 'open';
+      let s = `<circle cx="34" cy="24" r="6" style="fill:var(--${sig === 'open' ? 'ok' : 'bad'})"/>`;
+      s += svgText(48, 28, mode === 'quorin' ? `group.signal: ${sig}` : 'no shared signal', 'cap');
+      s += svgText(290, 28, `running: ${Math.round(h.running || 0)}`, 'cap-strong');
+      const w = h.wait || 'pending';
+      const color = w.startsWith('ok') ? 'ok' : w === 'pending' ? 'muted' : 'bad';
+      s += svgText(696, 28, (mode === 'quorin' ? 'wait(): ' : 'Promise.all: ') + w, 'cap-strong', 'end', `style="fill:var(--${color})"`);
+      if (h.alert) s += svgText(696, 330, h.alert, 'cap-strong', 'end', 'style="fill:var(--bad)"');
+      return s;
+    },
+    build(mode, conc) {
+      const T = timeline();
+      const durs = [4, 3, 5, 2, 4, 3];
+      const failAt = { 2: 2, 4: 3 };
+      const lane = (i) => 78 + i * 42;
+      const state = durs.map(() => 'queued');
+      const prog = durs.map(() => 0);
+      let failed = false;
+      let alert = '';
+      const limit = mode === 'quorin' ? conc : 6;
+      const place = () => {
+        let running = 0;
+        state.forEach((st, i) => {
+          const y = lane(i);
+          const x = 200 + (400 * prog[i]) / durs[i];
+          const id = 't' + i;
+          if (st === 'queued') T.set(id, { x: 160, y, r: 9, fill: 'dot-muted', label: '', ring: false });
+          if (st === 'running') { running++; T.set(id, { x, y, r: 11, fill: 'blue', label: String(i + 1), ring: 'blue' }); }
+          if (st === 'orphan') { running++; T.set(id, { x, y, r: 11, fill: 'warn', label: String(i + 1), ring: 'warn' }); }
+          if (st === 'aborting') { running++; T.set(id, { x, y, r: 11, fill: 'warn', label: String(i + 1), ring: 'bad' }); }
+          if (st === 'aborted') T.set(id, { x, y, r: 8, fill: 'dot-muted', label: '', ring: false });
+          if (st === 'done') T.set(id, { x: 600, y, r: 9, fill: 'ok', label: '', ring: false });
+          if (st === 'failed') T.set(id, { x, y, r: 11, fill: 'bad', label: '', ring: false, broken: true });
+          if (st === 'dropped') T.set(id, { x: 160, y, r: 6, fill: 'bad', label: '', ring: false, broken: true });
+          if (st === 'lateFail') T.set(id, { x, y, r: 11, fill: 'bad', label: '', ring: false, broken: true });
+        });
+        T.hud({ running });
+        return running;
+      };
+      const start = () => {
+        let running = state.filter((s) => s === 'running').length;
+        for (let i = 0; i < state.length && running < limit; i++) {
+          if (state[i] === 'queued') { state[i] = 'running'; running++; }
+        }
+      };
+      T.hud({ signal: 'open', wait: 'pending', alert: '' });
+      place();
+      T.push(500, [1, 2], mode === 'quorin' ? `6 regions, at most ${conc} at a time` : 'Promise.all starts every region at once', 0);
+      start();
+      place();
+      T.push(600, [2], mode === 'quorin' ? `group.run starts ${Math.min(conc, 6)} regions` : 'all 6 regions are running', 0);
+      for (let t = 1; t <= 12; t++) {
+        const logs = [];
+        let lines = [];
+        state.forEach((st, i) => { if (st === 'aborting') { state[i] = 'aborted'; logs.push(`region ${i + 1} stopped`); } });
+        state.forEach((st, i) => {
+          if (st !== 'running' && st !== 'orphan') return;
+          prog[i]++;
+          if (failAt[i] === prog[i] && (i === 2 || mode === 'naive')) {
+            if (!failed) {
+              failed = true;
+              state[i] = 'failed';
+              logs.push(`region ${i + 1} fails`);
+              if (mode === 'quorin') {
+                T.hud({ signal: 'aborted' });
+                state.forEach((s2, j) => {
+                  if (s2 === 'running' && j !== i) state[j] = 'aborting';
+                  if (s2 === 'queued') state[j] = 'dropped';
+                });
+                logs.push('the group signal aborts: running regions are asked to stop, queued ones are dropped');
+                lines = [4];
+              } else {
+                T.hud({ wait: 'rejected' });
+                state.forEach((s2, j) => { if (s2 === 'running') state[j] = 'orphan'; });
+                logs.push('Promise.all rejects and the caller moves on');
+                lines = [0];
+              }
+            } else {
+              state[i] = 'lateFail';
+              alert = `unhandled rejection: region ${i + 1}`;
+              T.hud({ alert });
+              logs.push(`region ${i + 1} fails later, and nobody handles it`);
+              lines = [3];
+            }
+            return;
+          }
+          if (prog[i] >= durs[i]) {
+            state[i] = 'done';
+            logs.push(st === 'orphan' ? `region ${i + 1} finishes, but its result is thrown away` : `region ${i + 1} done`);
+          }
+        });
+        if (!failed) start();
+        const running = place();
+        if (mode === 'quorin' && failed && running === 0) {
+          T.hud({ wait: 'err(region 3 failed)' });
+          logs.push('every started region has settled, so wait() resolves err(...)');
+          T.push(700, [4, 5], logs.join('. '), t);
+          break;
+        }
+        if (mode === 'quorin' && !failed && state.every((s) => s === 'done')) {
+          T.hud({ wait: 'ok([...])' });
+          T.push(700, [4], logs.join('. '), t);
+          break;
+        }
+        T.push(650, lines.length ? lines : [2], logs.join('. ') || 'working', t);
+        if (mode === 'naive' && running === 0) break;
+      }
+      return T.frames;
+    },
+  };
+
+  /* ---------------- Resilience ---------------- */
+  const resilienceScene = {
+    id: 'resilience',
+    name: 'withResilience',
+    subpath: 'quorin/resilience',
+    doc: 'resilience.md#withresiliencetask-options',
+    use: 'Call a flaky service with per-attempt timeouts, safe retries, backoff, and one overall deadline.',
+    param: { label: 'Retries', min: 0, max: 3, value: 2 },
+    legend: [['blue', 'request'], ['warn', '503 response'], ['ok', '200 response'], ['bad', 'aborted request']],
+    notice: {
+      quorin: [
+        'The timeout aborts the attempt\'s signal, so the hanging request is cancelled, not left running.',
+        'Retries wait a jittered backoff and only happen when <code>shouldRetry</code> says the error is transient.',
+        'Everything stays inside <code>totalTimeoutMs</code>, and the outcome is a result you can check.',
+      ],
+      naive: [
+        '<code>Promise.race</code> stops waiting at 2 s, but request 1 keeps running on the server.',
+        'The loop retries at once, with no backoff, while the first request is still in flight.',
+        'When request 1 finally fails, nobody is listening: an unhandled rejection.',
+      ],
+    },
+    code(mode, r) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> result = <span class="k">await</span> withResilience(',
+            '  ({ signal }) =&gt; getJson(url, signal),',
+            '  {',
+            `    retries: <span class="n">${r}</span>, retrySafe: <span class="k">true</span>,`,
+            '    shouldRetry: (error) =&gt; isTransient(error),',
+            '    attemptTimeoutMs: <span class="n">2_000</span>,',
+            '    totalTimeoutMs: <span class="n">6_000</span>,',
+            '  },',
+            ');',
+          ]
+        : [
+            `<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt;= <span class="n">${r}</span>; i++) {`,
+            '  <span class="k">try</span> {',
+            '    <span class="k">return await</span> Promise.race([',
+            '      getJson(url),',
+            '      timeout(<span class="n">2_000</span>),',
+            '    ]);',
+            '  } <span class="k">catch</span> {}',
+            '}',
+          ];
+    },
+    hubs: () => [
+      { x: 92, y: 175, r: 28, fill: 'hub' },
+      { x: 628, y: 175, r: 28, fill: 'hub' },
+    ],
+    stat(mode) {
+      const X = (t) => 92 + (t / 8) * 536;
+      let s = `<line x1="122" y1="158" x2="598" y2="158" style="stroke:var(--line)" stroke-width="1.5" stroke-dasharray="4 5"/>`;
+      s += `<line x1="122" y1="194" x2="598" y2="194" style="stroke:var(--line)" stroke-width="1.5" stroke-dasharray="4 5"/>`;
+      s += svgText(92, 224, 'your code', 'cap', 'middle') + svgText(628, 224, 'server', 'cap', 'middle');
+      s += `<line x1="92" y1="62" x2="628" y2="62" style="stroke:var(--line)" stroke-width="2"/>`;
+      for (let t = 0; t <= 8; t++) s += `<line x1="${X(t)}" y1="58" x2="${X(t)}" y2="66" style="stroke:var(--line)" stroke-width="1.5"/>` + svgText(X(t), 82, `${t}s`, 'cap', 'middle');
+      if (mode === 'quorin') {
+        s += `<line x1="${X(6)}" y1="44" x2="${X(6)}" y2="70" style="stroke:var(--bad)" stroke-width="2" stroke-dasharray="3 3"/>`;
+        s += svgText(X(6), 38, 'totalTimeoutMs', 'cap', 'middle');
+      }
+      return s;
+    },
+    hud(h) {
+      const X = (t) => 92 + (t / 8) * 536;
+      const t = Math.max(0, Math.min(8, h.time || 0));
+      let s = `<line x1="92" y1="62" x2="${X(t)}" y2="62" style="stroke:var(--blue)" stroke-width="3" stroke-linecap="round"/>`;
+      s += `<circle cx="${X(t)}" cy="62" r="5" style="fill:var(--blue)"/>`;
+      s += svgText(628, 128, `in flight: ${Math.round(h.inflight || 0)}`, 'cap-strong', 'middle', `style="fill:var(--${(h.inflight || 0) > 1.5 ? 'bad' : 'ink'})"`);
+      if (h.status) s += svgText(360, 270, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      (h.chips || '').split('|').filter(Boolean).forEach((c, i) => {
+        const [label, tone] = c.split(':');
+        const x = 150 + i * 110;
+        s += `<rect x="${x}" y="292" width="100" height="26" rx="13" style="fill:var(--surface-2);stroke:var(--${tone})" stroke-width="1.5"/>`;
+        s += svgText(x + 50, 309, label, 'cap', 'middle');
+      });
+      return s;
+    },
+    build(mode, retries) {
+      const T = timeline();
+      const out = { x: 122, y: 158 };
+      const atServer = { x: 606, y: 162 };
+      const back = { x: 598, y: 194 };
+      const home = { x: 116, y: 188 };
+      const ms = (dt) => Math.max(320, dt * 650);
+      let now = 0;
+      let chips = [];
+      const chip = (label, tone) => { chips.push(`${label}:${tone}`); T.hud({ chips: chips.join('|') }); };
+      const at = (t, lines, log, extra = {}) => {
+        const dt = t - now;
+        now = t;
+        T.hud(Object.assign({ time: t }, extra));
+        T.push(ms(dt), lines, log, `${t.toFixed(1)}s`);
+      };
+      T.hud({ time: 0, inflight: 0, status: '', chips: '' });
+      T.push(400, [], 'call the flaky service', '0.0s');
+      if (mode === 'quorin') {
+        const attempts = [
+          { kind: 'hang' },
+          { kind: '503' },
+          { kind: '200' },
+          { kind: '200' },
+        ].slice(0, retries + 1);
+        const backoffs = [0.3, 0.6, 0.9];
+        let t = 0;
+        for (let a = 0; a < attempts.length; a++) {
+          const id = 'r' + (a + 1);
+          T.set(id, { x: out.x, y: out.y, sx: home.x, sy: home.y, fill: 'blue', label: String(a + 1) });
+          at(t, [1], `attempt ${a + 1} starts with a fresh signal`, { inflight: 1, status: `attempt ${a + 1}`, tone: 'ink' });
+          T.set(id, { x: atServer.x, y: atServer.y });
+          at(t + 0.4, [1], 'request reaches the server');
+          if (attempts[a].kind === 'hang') {
+            T.set(id, { ring: 'warn' });
+            at(t + 1.2, [5], 'the server hangs');
+            T.set(id, { fill: 'bad', ring: false, broken: true });
+            chip(`${a + 1}: timeout`, 'bad');
+            at(t + 2.0, [5], 'attemptTimeoutMs elapses: the attempt signal aborts and the request is cancelled', { inflight: 0, status: 'attempt timed out, request cancelled', tone: 'bad' });
+            T.del(id);
+            if (a === attempts.length - 1) {
+              at(t + 2.3, [0], 'no retries left: result is err({ kind: "timeout" })', { status: 'err({ kind: "timeout", scope: "attempt" })', tone: 'bad' });
+              return T.frames;
+            }
+            t += 2.0;
+          } else {
+            const code = attempts[a].kind;
+            const res = 'res' + (a + 1);
+            T.del(id);
+            T.set(res, { x: back.x, y: back.y, sx: atServer.x, sy: atServer.y, fill: code === '503' ? 'warn' : 'ok', label: code === '503' ? '!' : '' });
+            at(t + 0.8, [1], `server answers ${code}`, { inflight: 1 });
+            T.set(res, { x: home.x, y: home.y });
+            at(t + 1.2, [code === '503' ? 4 : 0], code === '503' ? 'shouldRetry(503) is true: a transient error' : 'got 200', { inflight: 0 });
+            T.del(res);
+            if (code === '200') {
+              chip(`${a + 1}: 200`, 'ok');
+              at(t + 1.4, [0], 'result is ok(data), well inside the total deadline', { status: 'ok(data)', tone: 'ok' });
+              return T.frames;
+            }
+            chip(`${a + 1}: 503`, 'warn');
+            if (a === attempts.length - 1) {
+              at(t + 1.4, [0], 'no retries left: result is err({ kind: "task" })', { status: 'err({ kind: "task", error: 503 })', tone: 'bad' });
+              return T.frames;
+            }
+            t += 1.2;
+          }
+          const wait = backoffs[a];
+          at(t + 0.05, [3], `backoff: waiting ${Math.round(wait * 1000)} ms (full jitter)`, { status: `backoff ${Math.round(wait * 1000)} ms`, tone: 'muted' });
+          t += wait;
+        }
+        return T.frames;
+      }
+      const kinds = ['hang', '503', '200', '200'].slice(0, retries + 1);
+      let t = 0;
+      let inflight = 0;
+      let orphan = false;
+      for (let a = 0; a < kinds.length; a++) {
+        const id = 'r' + (a + 1);
+        inflight++;
+        T.set(id, { x: out.x, y: out.y, sx: home.x, sy: home.y, fill: 'blue', label: String(a + 1) });
+        at(t, [2, 3], `attempt ${a + 1}${a > 0 ? ' starts immediately, no backoff' : ''}`, { inflight, status: `attempt ${a + 1}`, tone: 'ink' });
+        T.set(id, { x: atServer.x, y: atServer.y + a * 0 });
+        at(t + 0.4, [3], 'request reaches the server');
+        if (kinds[a] === 'hang') {
+          T.set(id, { ring: 'warn', fill: 'warn', y: atServer.y - 26 });
+          at(t + 1.2, [3], 'the server hangs');
+          chip(`${a + 1}: timeout`, 'bad');
+          orphan = true;
+          at(t + 2.0, [4, 6], 'the race times out and the loop moves on, but request 1 is still running', { status: 'stopped waiting, request 1 still running', tone: 'warn' });
+          if (a === kinds.length - 1) break;
+          t += 2.0;
+        } else {
+          const code = kinds[a];
+          const res = 'res' + (a + 1);
+          T.del(id);
+          inflight--;
+          T.set(res, { x: back.x, y: back.y, sx: atServer.x, sy: atServer.y, fill: code === '503' ? 'warn' : 'ok', label: code === '503' ? '!' : '' });
+          at(t + 0.8, [2], `server answers ${code}`, { inflight });
+          T.set(res, { x: home.x, y: home.y });
+          at(t + 1.2, [code === '503' ? 6 : 2], code === '503' ? '503 is swallowed by the catch' : 'got 200', {});
+          T.del(res);
+          chip(`${a + 1}: ${code}`, code === '503' ? 'warn' : 'ok');
+          if (code === '200') {
+            at(t + 1.4, [2], 'returns the data, while request 1 is still running on the server', { status: 'returned, request 1 still running', tone: 'warn' });
+            t += 1.4;
+            break;
+          }
+          t += 1.2;
+        }
+      }
+      if (orphan) {
+        T.set('r1', { fill: 'bad', ring: false, broken: true });
+        at(Math.max(t + 1.2, 6.2), [3], 'request 1 finally fails: nobody is listening', { inflight: Math.max(0, inflight - 1), status: 'unhandled rejection: request 1', tone: 'bad' });
+        T.del('r1');
+        at(Math.max(t + 1.5, 6.5), [], '', {});
+      }
+      return T.frames;
+    },
+  };
+
+  /* ---------------- concurrencyLimit ---------------- */
+  const limitScene = {
+    id: 'concurrency-limit',
+    name: 'concurrencyLimit',
+    subpath: 'quorin/async',
+    doc: 'async.md#' + slug('concurrencyLimit(concurrency, { maxPending = 1024 })'),
+    use: 'Call an API that only handles a few requests at a time, and queue the rest instead of getting rejected.',
+    param: { label: 'Concurrency', min: 1, max: 4, value: 2 },
+    fixedInNaive: true,
+    legend: [['dot-muted', 'queued'], ['blue', 'running'], ['ok', 'done'], ['warn', 'caller gave up, slot still held'], ['bad', 'rejected']],
+    notice: {
+      quorin: [
+        'Only <code>concurrency</code> calls run. The rest wait in FIFO order, so the API never sees more than it can handle.',
+        'Job 6 is aborted while queued. It leaves the queue and rejects at once.',
+        'The caller of job 1 gives up while it runs. The caller is released at once, but the job keeps its slot until the work really stops, so the limit still holds.',
+      ],
+      naive: [
+        '<code>Promise.all</code> fires all 8 calls at once.',
+        'The API handles 4 at a time, so the other 4 come back <code>429 Too Many Requests</code>.',
+        'Retrying them right away only hits the limit again.',
+      ],
+    },
+    code(mode, n) {
+      return mode === 'quorin'
+        ? [
+            `<span class="k">const</span> limit = concurrencyLimit(<span class="n">${n}</span>);`,
+            '',
+            '<span class="k">const</span> results = <span class="k">await</span> Promise.allSettled(',
+            '  jobs.map((job) =&gt; limit(',
+            '    ({ signal }) =&gt; callApi(job, signal),',
+            '    { signal: job.signal }, <span class="c">// the caller can give up</span>',
+            '  )),',
+            ');',
+          ]
+        : [
+            '<span class="k">const</span> results = <span class="k">await</span> Promise.all(',
+            '  jobs.map((job) =&gt; callApi(job)), <span class="c">// all at once</span>',
+            ');',
+          ];
+    },
+    hubs: () => [{ x: 616, y: 150, r: 30, fill: 'hub' }],
+    box(n) {
+      const top = col(0, n, 44) - 24;
+      return { top, bottom: top + (n - 1) * 44 + 48 };
+    },
+    stat(mode, n) {
+      let s = svgText(616, 200, 'API: 4 at a time', 'cap', 'middle');
+      s += svgText(40, 282, 'rejected to the caller', 'cap') + svgText(500, 282, 'done', 'cap');
+      if (mode === 'quorin') {
+        const { top, bottom } = this.box(n);
+        s += `<rect x="290" y="${top}" width="80" height="${bottom - top}" rx="24" style="fill:var(--surface-2);stroke:var(--line)" stroke-width="1.5"/>`;
+        for (let j = 0; j < n; j++) s += `<circle cx="330" cy="${col(j, n, 44)}" r="16" style="fill:none;stroke:var(--line)" stroke-dasharray="3 3" stroke-width="1.5"/>`;
+        s += svgText(330, top - 12, `concurrencyLimit(${n})`, 'cap-strong', 'middle');
+        s += svgText(40, 140, 'queue, first in first out', 'cap');
+      } else {
+        s += svgText(470, 44, 'no limit', 'cap-strong', 'middle', 'style="fill:var(--bad)"');
+      }
+      return s;
+    },
+    hud(h, mode, n) {
+      const load = Math.round(h.load || 0);
+      let s = svgText(616, 218, `load ${load} / 4`, 'cap-strong', 'middle', `style="fill:var(--${load > 4 ? 'bad' : 'ink'})"`);
+      if (mode === 'quorin') s += svgText(330, this.box(n).bottom + 20, `running ${Math.round(h.running || 0)} / ${n}`, 'cap-strong', 'middle');
+      if (h.alert) s += svgText(696, 30, h.alert, 'cap-strong', 'end', 'style="fill:var(--bad)"');
+      return s;
+    },
+    build(mode, n) {
+      const T = timeline();
+      const durs = [3, 2, 4, 2, 3, 2, 3, 2];
+      const qPos = (k) => ({ x: 226 - k * 25, y: 170 });
+      const slotPos = (j) => ({ x: 330, y: col(j, n, 44) });
+      const donePos = (i) => ({ x: 500 + (i % 8) * 20, y: 304 });
+      const rejPos = (i) => ({ x: 52 + i * 22, y: 304 });
+      let done = 0;
+      let rejected = 0;
+      T.hud({ running: 0, load: 0, alert: '' });
+      durs.forEach((_, i) => T.set('j' + i, Object.assign(qPos(i), { sx: 10, sy: 170, r: 9, fill: 'dot-muted', label: '' })));
+      if (mode === 'naive') {
+        T.push(500, [0], '8 jobs are ready', 0);
+        durs.forEach((_, i) => T.set('j' + i, { x: 470, y: col(i, 8, 28), r: 11, fill: 'blue', label: String(i + 1), ring: 'blue' }));
+        T.hud({ load: 8 });
+        T.push(700, [1], 'Promise.all sends all 8 at once', 0);
+        for (let i = 4; i < 8; i++) T.set('j' + i, Object.assign(rejPos(rejected++), { r: 8, fill: 'bad', broken: true, label: '', ring: false }));
+        T.hud({ load: 4, alert: 'Promise.all rejected: 429' });
+        T.push(800, [0], 'the API takes 4: jobs 5 to 8 get 429, and Promise.all rejects at once', 1);
+        const left = durs.slice(0, 4);
+        for (let t = 2; t <= 5; t++) {
+          const logs = [];
+          for (let i = 0; i < 4; i++) {
+            if (left[i] <= 0) continue;
+            left[i]--;
+            if (left[i] === 0) {
+              T.set('j' + i, Object.assign(donePos(done++), { r: 6, fill: 'ok', label: '', ring: false }));
+              logs.push(`job ${i + 1} done, but nobody is waiting for it`);
+            }
+          }
+          T.hud({ load: left.filter((x) => x > 0).length });
+          T.push(650, [1], logs.join('. ') || 'working', t);
+        }
+        T.push(900, [0], '4 jobs finished, 4 never ran, and the caller only saw the error', '');
+        return T.frames;
+      }
+      const queue = durs.map((_, i) => i);
+      const slots = new Array(n).fill(null);
+      const place = () => {
+        queue.forEach((i, k) => T.set('j' + i, Object.assign(qPos(k), { r: 9, fill: 'dot-muted', label: '', ring: false })));
+        let running = 0;
+        slots.forEach((s, j) => {
+          if (!s) return;
+          running++;
+          T.set('j' + s.i, Object.assign(slotPos(j), { r: 12, fill: s.gaveUp ? 'warn' : 'blue', ring: s.gaveUp ? 'warn' : 'blue', label: String(s.i + 1) }));
+        });
+        T.hud({ running, load: running });
+      };
+      const fill = (logs) => {
+        for (let j = 0; j < n; j++) {
+          if (slots[j] || !queue.length) continue;
+          const i = queue.shift();
+          slots[j] = { i, left: durs[i], gaveUp: false };
+          logs.push(`job ${i + 1} starts`);
+        }
+      };
+      T.push(500, [2, 3], `8 jobs call the API through concurrencyLimit(${n})`, 0);
+      let logs = [];
+      fill(logs);
+      place();
+      T.push(600, [4], logs.join(', '), 0);
+      for (let t = 1; t <= 24; t++) {
+        logs = [];
+        const lines = new Set([4]);
+        slots.forEach((s, j) => {
+          if (!s || --s.left > 0) return;
+          slots[j] = null;
+          if (s.gaveUp) {
+            T.del('j' + s.i);
+            logs.push(`job ${s.i + 1} finally settles and frees its slot`);
+          } else {
+            T.set('j' + s.i, Object.assign(donePos(done++), { r: 6, fill: 'ok', label: '', ring: false }));
+            logs.push(`job ${s.i + 1} done`);
+            lines.add(2);
+          }
+        });
+        if (t === 1 && queue.includes(5)) {
+          queue.splice(queue.indexOf(5), 1);
+          T.set('j5', Object.assign(rejPos(rejected++), { r: 8, fill: 'bad', broken: true, label: '' }));
+          logs.push('job 6 is aborted while queued: it leaves the queue and rejects at once');
+          lines.add(5);
+        }
+        if (t === 2) {
+          const j = slots.findIndex((s) => s && s.i === 0);
+          if (j >= 0) {
+            slots[j].gaveUp = true;
+            const from = slotPos(j);
+            T.set('c0', Object.assign(rejPos(rejected++), { sx: from.x, sy: from.y, r: 8, fill: 'bad', broken: true }));
+            logs.push('the caller of job 1 gives up: it rejects at once, but the job keeps its slot until it stops');
+            lines.add(5);
+          }
+        }
+        fill(logs);
+        place();
+        T.push(650, [...lines], logs.join('. ') || 'working', t);
+        if (!queue.length && slots.every((s) => !s)) break;
+      }
+      T.push(900, [2], `all settled: ${done} done, 2 rejected, never more than ${n} running`, '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- createRateLimiter ---------------- */
+  const rateScene = {
+    id: 'rate-limiter',
+    name: 'createRateLimiter',
+    subpath: 'quorin/async',
+    doc: 'async.md#' + slug('createRateLimiter({ rate, intervalMs = 1000, burst = rate, maxPending = 1024 })'),
+    use: 'Stay under an API rate limit by spending tokens that refill over time, instead of sending everything at once.',
+    param: { label: 'Rate per second', min: 1, max: 3, value: 2 },
+    fixedInNaive: true,
+    legend: [['dot-muted', 'waiting'], ['blue', 'request'], ['sky', 'token'], ['ok', '200'], ['bad', '429']],
+    notice: {
+      quorin: [
+        'The bucket starts full, so the first requests are sent at once, up to <code>burst</code>.',
+        'After that, each request waits for a token. Tokens refill continuously at <code>rate</code> per second.',
+        'Waiters are served in FIFO order and the server never sees more than its limit, so nothing gets 429.',
+      ],
+      naive: [
+        'The loop sends all 8 requests in the same instant.',
+        'The server accepts a burst of 3, so 5 come back 429.',
+        'Retrying them right away only hits the limit again.',
+      ],
+    },
+    code(mode, r) {
+      return mode === 'quorin'
+        ? [
+            `<span class="k">const</span> limiter = createRateLimiter({ rate: <span class="n">${r}</span> });`,
+            '<span class="c">// burst defaults to rate</span>',
+            '',
+            '<span class="k">for</span> (<span class="k">const</span> request <span class="k">of</span> requests) {',
+            '  <span class="k">await</span> limiter.acquire({ signal }); <span class="c">// waits for a token</span>',
+            '  send(request);',
+            '}',
+          ]
+        : [
+            '<span class="k">for</span> (<span class="k">const</span> request <span class="k">of</span> requests) {',
+            '  send(request); <span class="c">// as fast as the loop runs</span>',
+            '}',
+          ];
+    },
+    hubs: () => [{ x: 610, y: 170, r: 30, fill: 'hub' }],
+    stat(mode, r) {
+      let s = svgText(610, 220, 'server: burst 3, 3 per second', 'cap', 'middle');
+      s += svgText(40, 282, '429 Too Many Requests', 'cap') + svgText(470, 282, '200 OK', 'cap');
+      s += svgText(40, 140, 'requests', 'cap');
+      if (mode === 'quorin') {
+        const top = col(0, r, 28) - 22;
+        s += `<rect x="300" y="${top}" width="44" height="${(r - 1) * 28 + 44}" rx="22" style="fill:var(--surface-2);stroke:var(--line)" stroke-width="1.5"/>`;
+        s += svgText(322, top - 12, `rate ${r}/s, burst ${r}`, 'cap-strong', 'middle');
+      }
+      return s;
+    },
+    hud(h, mode, r) {
+      let s = svgText(696, 30, `t = ${(h.clock || 0).toFixed(2)} s`, 'cap-strong', 'end');
+      if (mode === 'quorin') {
+        const tokens = Math.max(0, h.tokens || 0);
+        for (let j = 0; j < r; j++) {
+          const y = col(j, r, 28);
+          const amount = Math.max(0, Math.min(1, tokens - (r - 1 - j)));
+          s += `<circle cx="322" cy="${y}" r="10" style="fill:none;stroke:var(--line)" stroke-width="1.5"/>`;
+          if (amount > 0.02) s += `<circle cx="322" cy="${y}" r="${(9 * amount).toFixed(2)}" style="fill:var(--sky)"/>`;
+        }
+        s += svgText(322, col(r - 1, r, 28) + 40, `tokens ${tokens.toFixed(2)}`, 'cap-strong', 'middle');
+      }
+      const rejected = Math.round(h.rejected || 0);
+      if (rejected) s += svgText(610, 120, `${rejected} rejected`, 'cap-strong', 'middle', 'style="fill:var(--bad)"');
+      return s;
+    },
+    build(mode, r) {
+      const T = timeline();
+      const ids = [0, 1, 2, 3, 4, 5, 6, 7];
+      const qPos = (k) => ({ x: 236 - k * 25, y: 170 });
+      const server = { x: 610, y: 170 };
+      const donePos = (i) => ({ x: 470 + (i % 8) * 20, y: 304 });
+      const rejPos = (i) => ({ x: 52 + i * 22, y: 304 });
+      let done = 0;
+      T.hud({ tokens: mode === 'quorin' ? r : 0, clock: 0, rejected: 0 });
+      ids.forEach((i, k) => T.set('q' + i, Object.assign(qPos(k), { sx: 10, sy: 170, r: 9, fill: 'dot-muted', label: '' })));
+      T.push(500, [], '8 requests are ready', '0.00s');
+      if (mode === 'naive') {
+        ids.forEach((i) => T.set('q' + i, { x: 560, y: col(i, 8, 26), r: 10, fill: 'blue', label: String(i + 1) }));
+        T.push(700, [1], 'all 8 requests leave in the same instant', '0.00s');
+        ids.forEach((i) => {
+          if (i < 3) T.set('q' + i, Object.assign(donePos(done++), { r: 6, fill: 'ok', label: '' }));
+          else T.set('q' + i, Object.assign(rejPos(i - 3), { r: 8, fill: 'bad', broken: true, label: '' }));
+        });
+        T.hud({ rejected: 5, clock: 0.25 });
+        T.push(900, [1], 'the server accepts a burst of 3: requests 4 to 8 get 429', '0.25s');
+        T.push(900, [0], '5 of 8 requests failed, and the loop never knew it should wait', '');
+        return T.frames;
+      }
+      let tokens = r;
+      let clock = 0;
+      const queue = ids.slice();
+      let inflight = [];
+      const sendReady = (logs) => {
+        let b = 0;
+        while (queue.length && tokens >= 1 - 1e-9) {
+          tokens -= 1;
+          const i = queue.shift();
+          inflight.push(i);
+          T.set('q' + i, { x: server.x, y: server.y + (b++ - 0.5) * 14, r: 11, fill: 'blue', label: String(i + 1) });
+          logs.push(`request ${i + 1} takes a token and is sent`);
+        }
+        queue.forEach((i, k) => T.set('q' + i, qPos(k)));
+        T.hud({ tokens, clock });
+      };
+      let logs = [];
+      sendReady(logs);
+      T.push(700, [4, 5], logs.join(', ') + ': the bucket started full', '0.00s');
+      for (let step = 1; step <= 40 && (queue.length || inflight.length); step++) {
+        logs = [];
+        clock = step * 0.25;
+        tokens = Math.min(r, tokens + r * 0.25);
+        inflight.forEach((i) => T.set('q' + i, Object.assign(donePos(done++), { r: 6, fill: 'ok', label: '' })));
+        inflight = [];
+        sendReady(logs);
+        T.push(logs.length ? 520 : 300, logs.length ? [4, 5] : [4], logs.join(', ') || (queue.length ? 'waiting for the bucket to refill' : 'last response arrives'), `${clock.toFixed(2)}s`);
+      }
+      T.push(900, [4], 'all 8 got 200, paced to the server limit', '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- singleFlight ---------------- */
+  const flightScene = {
+    id: 'single-flight',
+    name: 'singleFlight',
+    subpath: 'quorin/async',
+    doc: 'async.md#' + slug('singleFlight(fn, { key, maxInFlight = 1024 })'),
+    use: 'When many handlers ask for the same thing at the same moment, make one call and share the answer.',
+    param: { label: 'Callers', min: 2, max: 6, value: 4 },
+    legend: [['blue', 'call'], ['lilac', 'shared flight'], ['ok', 'answer'], ['bad', 'caller gave up']],
+    notice: {
+      quorin: [
+        'Calls with the same key join the flight that is already running. The API sees one request.',
+        'Every caller gets the same settled value. Caller 2 gives up early, and only caller 2 is affected.',
+        'Nothing is cached afterwards: the next call starts a new flight. Use <code>createCache</code> when results should last.',
+      ],
+      naive: [
+        'Every handler makes its own request for the same profile.',
+        'The API does the same work once per caller, right when it is busiest.',
+        'Under a traffic spike this is how one popular key overloads a backend.',
+      ],
+    },
+    code(mode) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> loadProfile = singleFlight(',
+            '  (args: <span class="k">readonly</span> [id: string], { signal }) =&gt;',
+            '    fetchProfile(args[<span class="n">0</span>], signal),',
+            ');',
+            '',
+            '<span class="c">// many handlers ask at the same time</span>',
+            '<span class="k">const</span> profile = <span class="k">await</span> loadProfile([<span class="s">\'u1\'</span>]);',
+          ]
+        : [
+            '<span class="c">// many handlers ask at the same time</span>',
+            '<span class="k">const</span> profile = <span class="k">await</span> fetchProfile(<span class="s">\'u1\'</span>);',
+          ];
+    },
+    hubs(mode, n) {
+      const out = [];
+      for (let i = 0; i < n; i++) out.push({ x: 74, y: col(i, n, 46), r: 15, fill: 'hub' });
+      if (mode === 'quorin') out.push({ x: 330, y: 170, r: 22, fill: 'hub' });
+      out.push({ x: 620, y: 170, r: 30, fill: 'hub' });
+      return out;
+    },
+    stat(mode, n) {
+      let s = '';
+      for (let i = 0; i < n; i++) s += svgText(48, col(i, n, 46) + 4, String(i + 1), 'cap', 'end');
+      s += svgText(74, col(0, n, 46) - 30, 'handlers', 'cap', 'middle');
+      if (mode === 'quorin') s += svgText(330, 214, "singleFlight, key 'u1'", 'cap', 'middle');
+      s += svgText(620, 218, 'API', 'cap', 'middle');
+      return s;
+    },
+    hud(h, mode) {
+      const calls = Math.round(h.calls || 0);
+      let s = svgText(620, 120, `requests: ${calls}`, 'cap-strong', 'middle', `style="fill:var(--${calls > 1 ? 'bad' : 'ink'})"`);
+      if (mode === 'quorin' && h.waiting !== undefined) s += svgText(330, 128, `waiting: ${Math.round(h.waiting)}`, 'cap-strong', 'middle');
+      if (h.status) s += svgText(360, 318, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, n) {
+      const T = timeline();
+      const caller = (i) => ({ x: 74, y: col(i, n, 46) });
+      const node = { x: 330, y: 170 };
+      const api = { x: 620, y: 170 };
+      const around = (i) => ({ x: node.x + Math.cos(i * 1.9) * 9, y: node.y + Math.sin(i * 1.9) * 9 });
+      T.hud({ calls: 0, waiting: 0, status: '', tone: 'ink' });
+      T.push(500, [mode === 'quorin' ? 5 : 0], `${n} handlers need profile u1 at the same moment`, '');
+      if (mode === 'naive') {
+        for (let i = 0; i < n; i++) T.set('k' + i, Object.assign({ x: 584, y: col(i, n, 20) }, { sx: caller(i).x, sy: caller(i).y, r: 9, fill: 'blue', label: '' }));
+        T.hud({ calls: n });
+        T.push(800, [1], `each handler calls fetchProfile itself: ${n} requests for the same data`, '');
+        for (let i = 0; i < n; i++) T.set('k' + i, Object.assign(caller(i), { fill: 'ok' }));
+        T.push(800, [1], `the API answers ${n} times`, '');
+        T.hud({ status: `${n} requests for one profile`, tone: 'bad' });
+        T.push(1200, [1], `the work was done ${n} times`, '');
+        return T.frames;
+      }
+      const c0 = caller(0);
+      T.set('k0', Object.assign(around(0), { sx: c0.x, sy: c0.y, r: 9, fill: 'blue', label: '' }));
+      T.hud({ waiting: 1 });
+      T.push(650, [6], 'handler 1 starts a flight for key u1', '');
+      T.set('f', { x: api.x, y: api.y, sx: node.x, sy: node.y, r: 11, fill: 'lilac', ring: 'lilac', label: '' });
+      for (let i = 1; i < n; i++) T.set('k' + i, Object.assign(around(i), { sx: caller(i).x, sy: caller(i).y, r: 9, fill: 'blue', label: '' }));
+      T.hud({ calls: 1, waiting: n });
+      T.push(800, [0, 6], `handlers 2 to ${n} join the same flight, and one request goes to the API`, '');
+      T.set('k1', Object.assign(caller(1), { fill: 'bad', broken: true }));
+      T.hud({ waiting: n - 1 });
+      T.push(800, [6], 'handler 2 gives up: only its call rejects, the flight keeps going for the rest', '');
+      T.set('f', Object.assign({}, node, { fill: 'ok', ring: false }));
+      T.push(800, [2], 'the API answers once', '');
+      T.del('f');
+      for (let i = 0; i < n; i++) {
+        if (i === 1) continue;
+        T.del('k' + i);
+        T.set('r' + i, Object.assign(caller(i), { sx: node.x, sy: node.y, r: 9, fill: 'ok', label: '' }));
+      }
+      T.hud({ waiting: 0 });
+      T.push(850, [6], `${n - 1} handlers get the same value from that one request`, '');
+      T.hud({ status: 'settled: the next call starts a new flight', tone: 'ok' });
+      T.push(1300, [0], 'the flight has settled and nothing is cached', '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- createCache ---------------- */
+  const cacheScene = {
+    id: 'cache',
+    name: 'createCache',
+    subpath: 'quorin/cache',
+    doc: 'cache.md#' + slug('createCache(options)'),
+    use: 'Keep recent results close, with a hard size limit, coalesced loads, and stale data served while it refreshes.',
+    param: { label: 'max', min: 2, max: 4, value: 3 },
+    legend: [['blue', 'fresh entry'], ['warn', 'stale entry'], ['lilac', 'load in flight'], ['ok', 'answer'], ['bad', 'discarded or wrong']],
+    notice: {
+      quorin: [
+        'Two misses for A at the same moment share one load.',
+        'Reading A moves it to the most recent end, so B is the one evicted when the cache is full.',
+        'A stale A is served at once while a refresh runs. <code>set</code> during that refresh wins, and the late result is thrown away.',
+      ],
+      naive: [
+        'Two misses for A start two loads of the same data.',
+        'Nothing is ever evicted, so the Map grows with every new key.',
+        'An expired entry makes the caller wait for a full reload, and a slow load can overwrite a newer value.',
+      ],
+    },
+    code(mode, max) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> users = createCache&lt;string, User&gt;({',
+            `  max: <span class="n">${max}</span>, ttlMs: <span class="n">30_000</span>, swrMs: <span class="n">30_000</span>,`,
+            '  load: (id, { signal }) =&gt; fetchUser(id, signal),',
+            '});',
+            '',
+            '<span class="k">const</span> user = <span class="k">await</span> users.getOrFetch(id);',
+            'users.set(id, newer); <span class="c">// wins over a load in flight</span>',
+          ]
+        : [
+            '<span class="k">const</span> users = <span class="k">new</span> Map&lt;string, Entry&gt;();',
+            '',
+            '<span class="k">async function</span> getUser(id: string) {',
+            '  <span class="k">const</span> hit = users.get(id);',
+            '  <span class="k">if</span> (hit &amp;&amp; hit.expires &gt; Date.now()) <span class="k">return</span> hit.value;',
+            '  <span class="k">const</span> value = <span class="k">await</span> fetchUser(id);',
+            '  users.set(id, { value, expires: Date.now() + <span class="n">30_000</span> });',
+            '  <span class="k">return</span> value;',
+            '}',
+            'users.set(id, { value: newer, expires }); <span class="c">// elsewhere</span>',
+          ];
+    },
+    hubs: () => [
+      { x: 64, y: 170, r: 22, fill: 'hub' },
+      { x: 640, y: 170, r: 30, fill: 'hub' },
+    ],
+    stat(mode, max) {
+      const right = 236 + (max - 1) * 62 + 28;
+      let s = `<rect x="208" y="140" width="${right - 208}" height="60" rx="30" style="fill:var(--surface-2);stroke:var(--${mode === 'quorin' ? 'line' : 'bad'})" stroke-width="1.5" ${mode === 'quorin' ? '' : 'stroke-dasharray="5 5"'}/>`;
+      for (let i = 0; i < max; i++) s += `<circle cx="${236 + i * 62}" cy="170" r="18" style="fill:none;stroke:var(--line)" stroke-dasharray="3 3" stroke-width="1.5"/>`;
+      s += svgText(64, 212, 'app', 'cap', 'middle') + svgText(640, 220, 'origin', 'cap', 'middle');
+      s += svgText(214, 222, 'least recent', 'cap') + svgText(right - 6, 222, 'most recent', 'cap', 'end');
+      return s;
+    },
+    hud(h, mode, max) {
+      const size = Math.round(h.size || 0);
+      let s = svgText(640, 120, `loads: ${Math.round(h.loads || 0)}`, 'cap-strong', 'middle');
+      s += svgText(214, 128, mode === 'quorin' ? `size ${size} / ${max}` : `size ${size}, no limit`, 'cap-strong', 'start', `style="fill:var(--${size > max ? 'bad' : 'ink'})"`);
+      if (h.status) s += svgText(360, 318, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, max) {
+      const T = timeline();
+      const quorin = mode === 'quorin';
+      const APP = { x: 64, y: 170 };
+      const DB = { x: 640, y: 170 };
+      const DOOR = { x: 200, y: 170 };
+      const LOAD = { x: 230, y: 108 };
+      const slotPos = (i) => ({ x: 236 + i * 62, y: 170 });
+      const call = (k) => (quorin ? `getOrFetch(${k})` : `getUser(${k})`);
+      const L = quorin ? { load: [2, 5], get: [5], set: [6] } : { load: [5, 6], get: [3, 4], set: [9] };
+      const order = [];
+      let loads = 0;
+      let trash = [];
+      const flush = () => { trash.forEach((id) => T.del(id)); trash = []; };
+      const place = () => {
+        order.forEach((k, i) => T.set('e' + k, slotPos(i)));
+        T.hud({ size: order.length, loads });
+      };
+      T.hud({ size: 0, loads: 0, status: '', tone: 'ink' });
+      T.push(500, [0], quorin ? `a cache that holds at most ${max} users` : 'a plain Map used as a cache', '');
+
+      T.set('q1', { x: DOOR.x, y: 158, sx: APP.x, sy: APP.y, r: 8, fill: 'blue', label: '' });
+      T.set('q2', { x: DOOR.x, y: 182, sx: APP.x, sy: APP.y, r: 8, fill: 'blue', label: '' });
+      T.push(600, L.get, `two callers ask for A at the same moment: ${call('A')} misses twice`, 1);
+      if (quorin) {
+        loads = 1;
+        T.set('lA', { x: DB.x, y: DB.y, sx: LOAD.x, sy: LOAD.y, r: 10, fill: 'lilac', ring: 'lilac', label: '' });
+        T.hud({ loads });
+        T.push(700, L.load, 'both misses share one load', 1);
+      } else {
+        loads = 2;
+        T.set('lA', { x: DB.x, y: DB.y - 16, sx: LOAD.x, sy: LOAD.y, r: 10, fill: 'lilac', ring: 'lilac', label: '' });
+        T.set('lA2', { x: DB.x, y: DB.y + 16, sx: LOAD.x, sy: LOAD.y + 20, r: 10, fill: 'lilac', ring: 'lilac', label: '' });
+        T.hud({ loads });
+        T.push(700, L.load, 'each miss starts its own load of the same user', 1);
+      }
+      T.del('lA');
+      T.del('lA2');
+      order.push('A');
+      T.set('eA', Object.assign(slotPos(0), { sx: DB.x, sy: DB.y, r: 14, fill: 'blue', label: 'A' }));
+      T.set('q1', Object.assign({}, APP, { fill: 'ok' }));
+      T.set('q2', Object.assign({}, APP, { fill: 'ok' }));
+      place();
+      T.push(700, L.load, quorin ? 'A arrives once and both callers get it' : 'both loads finish and A is written twice', 2);
+      trash.push('q1', 'q2');
+
+      const loadKey = (k, t) => {
+        flush();
+        T.set('l' + k, { x: DB.x, y: DB.y, sx: LOAD.x, sy: LOAD.y, r: 10, fill: 'lilac', ring: 'lilac', label: '' });
+        loads++;
+        T.hud({ loads });
+        T.push(520, L.load, `${call(k)} misses and loads ${k}`, t);
+        T.del('l' + k);
+        order.push(k);
+        T.set('e' + k, Object.assign(slotPos(order.length - 1), { sx: DB.x, sy: DB.y, r: 14, fill: 'blue', label: k }));
+        let log = `${k} is stored as the most recent entry`;
+        let tone = '';
+        if (quorin && order.length > max) {
+          const out = order.shift();
+          T.set('e' + out, { x: slotPos(0).x, y: 262, r: 9, fill: 'dot-muted', label: '' });
+          trash.push('e' + out);
+          log = `${k} is stored, and ${out}, the least recently used entry, is evicted`;
+        } else if (!quorin && order.length > max) {
+          log = `${k} is stored: ${order.length} entries and still growing`;
+          tone = 'bad';
+        }
+        place();
+        if (tone) T.hud({ status: 'nothing is ever evicted', tone });
+        T.push(650, L.load, log, t);
+      };
+
+      loadKey('B', 3);
+      flush();
+      T.set('qh', Object.assign(slotPos(0), { sx: APP.x, sy: APP.y, r: 8, fill: 'blue', label: '' }));
+      T.push(600, L.get, `${call('A')} is a hit`, 4);
+      if (quorin) {
+        order.push(order.shift());
+        place();
+      }
+      T.set('qh', Object.assign({}, APP, { fill: 'ok' }));
+      T.push(700, L.get, quorin ? 'the hit moves A to the most recent end' : 'a hit for A; a Map has no idea which entries are in use', 4);
+      trash.push('qh');
+      ['C', 'D', 'E'].slice(0, max - 1).forEach((k, i) => loadKey(k, 5 + i));
+      flush();
+
+      const t = 5 + max;
+      const posA = () => slotPos(order.indexOf('A'));
+      T.set('eA', { fill: 'warn' });
+      T.hud({ status: '' });
+      T.push(800, [1], quorin ? '30 seconds pass: A is past ttlMs but inside swrMs, so it is stale' : '30 seconds pass: A has expired', t);
+      T.set('qs', Object.assign(posA(), { sx: APP.x, sy: APP.y, r: 8, fill: 'blue', label: '' }));
+      T.push(600, L.get, `${call('A')} again`, t);
+      loads++;
+      if (quorin) {
+        T.set('qs', Object.assign({}, APP, { fill: 'warn' }));
+        T.set('lA', { x: DB.x, y: DB.y, sx: posA().x, sy: posA().y - 20, r: 10, fill: 'lilac', ring: 'lilac', label: '' });
+        T.hud({ loads });
+        T.push(800, L.get, 'the stale A is returned at once, and a refresh starts in the background', t);
+        trash.push('qs');
+        flush();
+        order.push(order.splice(order.indexOf('A'), 1)[0]);
+        T.set('eA', { fill: 'blue', label: 'A2' });
+        place();
+        T.push(800, L.set, 'set(A, newer) stores a newer value and invalidates the refresh in flight', t + 1);
+        T.set('lA', { x: LOAD.x + 40, y: LOAD.y, fill: 'bad', ring: false, broken: true });
+        T.push(800, [2], 'the refresh finishes late, and its result is discarded', t + 1);
+        T.del('lA');
+        T.hud({ status: 'A still holds the newer value', tone: 'ok' });
+        T.push(1300, [5], `at most ${max} entries, ${loads} loads, no stale data written back`, '');
+        return T.frames;
+      }
+      T.set('qs', Object.assign({}, DOOR, { ring: 'warn' }));
+      T.set('lA', { x: DB.x, y: DB.y, sx: LOAD.x, sy: LOAD.y, r: 10, fill: 'lilac', ring: 'lilac', label: '' });
+      T.hud({ loads });
+      T.push(900, L.load, 'the caller waits for a full reload', t);
+      T.del('lA');
+      T.set('eA', { fill: 'blue' });
+      T.set('qs', Object.assign({}, APP, { fill: 'ok', ring: false }));
+      T.push(700, L.load, 'A is fresh again, after the caller waited for the whole load', t);
+      trash.push('qs');
+      flush();
+      loads++;
+      T.set('lA', { x: DB.x, y: DB.y, sx: LOAD.x, sy: LOAD.y, r: 10, fill: 'lilac', ring: 'lilac', label: '' });
+      T.hud({ loads });
+      T.push(700, L.load, 'another caller starts a slow load of A', t + 1);
+      T.set('eA', { fill: 'blue', label: 'A2' });
+      T.push(800, L.set, 'elsewhere, set(A, newer) writes a newer value', t + 1);
+      T.set('lA', Object.assign(posA(), { r: 9, fill: 'lilac', ring: false }));
+      T.push(700, L.load, 'the slow load finishes late', t + 1);
+      T.del('lA');
+      T.set('eA', { fill: 'bad', label: 'A' });
+      T.hud({ status: 'the late load overwrote the newer value', tone: 'bad' });
+      T.push(1300, [6], 'old data replaced the newer value, and nothing noticed', t + 1);
+      return T.frames;
+    },
+  };
+
+  /* ---------------- Mutex ---------------- */
+  const mutexScene = {
+    id: 'mutex',
+    name: 'Mutex',
+    subpath: 'quorin/async',
+    doc: 'concurrency.md#' + slug('`Mutex` and `withLock(mutex, fn, options?)`'),
+    use: 'Stop async read, then write steps from overwriting each other when several tasks touch the same record.',
+    param: { label: 'Tasks', min: 2, max: 4, value: 3 },
+    legend: [['blue', 'task'], ['warn', 'waiting for the lock'], ['ok', 'withdrawal counted'], ['bad', 'withdrawal lost']],
+    notice: {
+      quorin: [
+        'Only one task holds the lock. The others wait in arrival order.',
+        'Each task reads the balance after the previous write, so every withdrawal counts.',
+        '<code>withLock</code> releases the lock even when the task throws.',
+      ],
+      naive: [
+        'Every task reads 100 before anyone writes.',
+        'Each one writes 100 minus 20, so the last write wins and the other withdrawals vanish.',
+        'No error is thrown. The balance is simply wrong.',
+      ],
+    },
+    code(mode, n) {
+      const run = `<span class="k">await</span> Promise.all(Array.from({ length: <span class="n">${n}</span> }, () =&gt; withdraw(<span class="n">20</span>)));`;
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> mutex = <span class="k">new</span> Mutex();',
+            '',
+            '<span class="k">async function</span> withdraw(amount: number) {',
+            '  <span class="k">await</span> withLock(mutex, <span class="k">async</span> () =&gt; {',
+            '    <span class="k">const</span> balance = <span class="k">await</span> readBalance();',
+            '    <span class="k">await</span> writeBalance(balance - amount);',
+            '  });',
+            '}',
+            '',
+            run,
+          ]
+        : [
+            '<span class="k">async function</span> withdraw(amount: number) {',
+            '  <span class="k">const</span> balance = <span class="k">await</span> readBalance();',
+            '  <span class="k">await</span> writeBalance(balance - amount);',
+            '}',
+            '',
+            run,
+          ];
+    },
+    hubs: () => [{ x: 560, y: 170, r: 38, fill: 'hub' }],
+    stat(mode, n) {
+      let s = svgText(560, 230, 'account', 'cap', 'middle');
+      for (let i = 0; i < n; i++) s += svgText(46, col(i, n, 62) + 4, `task ${i + 1}`, 'cap', 'end');
+      if (mode === 'quorin') {
+        s += `<rect x="310" y="138" width="64" height="64" rx="20" style="fill:var(--surface-2);stroke:var(--line)" stroke-width="1.5"/>`;
+        s += svgText(342, 126, 'mutex', 'cap-strong', 'middle');
+      }
+      return s;
+    },
+    hud(h, mode, n) {
+      let s = `<text x="560" y="172" class="big" text-anchor="middle" dominant-baseline="central">${esc(h.bal || '100')}</text>`;
+      (h.notes || '').split('|').forEach((note, i) => {
+        if (note) s += svgText(92, col(i, n, 62) + 4, note, 'cap');
+      });
+      if (h.status) s += svgText(560, 300, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, n) {
+      const T = timeline();
+      const home = (i) => ({ x: 70, y: col(i, n, 62) });
+      const gate = { x: 342, y: 170 };
+      const account = { x: 560, y: 170 };
+      const notes = new Array(n).fill('');
+      const note = (i, text) => { notes[i] = text; T.hud({ notes: notes.join('|') }); };
+      let balance = 100;
+      T.hud({ bal: '100', notes: '', status: '', tone: 'ink' });
+      for (let i = 0; i < n; i++) T.set('t' + i, Object.assign(home(i), { r: 12, fill: 'blue', label: String(i + 1) }));
+      T.push(500, [mode === 'quorin' ? 9 : 5], `${n} tasks each withdraw 20 from a balance of 100`, '');
+      if (mode === 'naive') {
+        for (let i = 0; i < n; i++) {
+          T.set('t' + i, { x: account.x - 64, y: col(i, n, 26) });
+          note(i, 'read 100');
+        }
+        T.push(800, [1], `all ${n} tasks read 100 before anyone writes`, '');
+        for (let i = 0; i < n; i++) {
+          T.set('t' + i, Object.assign(home(i), { fill: 'blue' }));
+          T.hud({ bal: '80' });
+          note(i, 'read 100, wrote 80');
+          T.push(650, [2], `task ${i + 1} writes 100 - 20 = 80`, '');
+        }
+        for (let i = 0; i < n - 1; i++) T.set('t' + i, { fill: 'bad', broken: true });
+        T.set('t' + (n - 1), { fill: 'ok' });
+        T.hud({ status: `expected ${100 - 20 * n}, got 80`, tone: 'bad' });
+        T.push(1400, [2], `the last write wins: ${n - 1} withdrawals are lost`, '');
+        return T.frames;
+      }
+      T.set('t0', Object.assign({}, gate));
+      for (let i = 1; i < n; i++) T.set('t' + i, { ring: 'warn' });
+      for (let i = 1; i < n; i++) note(i, 'waiting');
+      T.push(700, [3], `task 1 takes the lock; ${n === 2 ? 'task 2 waits' : `tasks 2 to ${n} wait in order`}`, '');
+      for (let i = 0; i < n; i++) {
+        T.set('t' + i, Object.assign({}, account));
+        note(i, `read ${balance}`);
+        T.push(650, [4], `task ${i + 1} reads ${balance}`, '');
+        balance -= 20;
+        T.set('t' + i, Object.assign({}, gate));
+        T.hud({ bal: String(balance) });
+        note(i, `read ${balance + 20}, wrote ${balance}`);
+        T.push(650, [5], `task ${i + 1} writes ${balance}`, '');
+        T.set('t' + i, Object.assign(home(i), { fill: 'ok' }));
+        if (i + 1 < n) {
+          T.set('t' + (i + 1), Object.assign({}, gate, { ring: false }));
+          note(i + 1, 'holds the lock');
+          T.push(650, [6, 3], `task ${i + 1} releases the lock, and task ${i + 2} takes it`, '');
+        } else {
+          T.push(650, [6], `task ${i + 1} releases the lock`, '');
+        }
+      }
+      T.hud({ status: `balance ${balance}: every withdrawal counted`, tone: 'ok' });
+      T.push(1400, [9], `expected ${100 - 20 * n}, got ${balance}`, '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- Deque ---------------- */
+  const CENTER = { x: 360, y: 178 };
+  const ringRadius = (cap) => (cap > 8 ? 124 : 92);
+  const ringAngle = (slot, cap) => -Math.PI / 2 + (slot * 2 * Math.PI) / cap;
+  const ringPos = (slot, cap, extra = 0) => {
+    const a = ringAngle(slot, cap);
+    const r = ringRadius(cap) + extra;
+    return { x: CENTER.x + Math.cos(a) * r, y: CENTER.y + Math.sin(a) * r };
+  };
+  const dequeScene = {
+    id: 'deque',
+    name: 'Deque',
+    subpath: 'quorin/struct',
+    doc: 'struct.md#' + slug('Deque<T>'),
+    use: 'A queue where taking from the front costs the same as adding to the back, at any size.',
+    param: { label: 'Shifts', min: 1, max: 4, value: 3 },
+    legend: [['blue', 'value'], ['sky', 'just pushed'], ['bad', 'moved by a shift']],
+    notice: {
+      quorin: [
+        'Values sit in a ring buffer. <code>shift</code> only moves the head, so no other value is touched.',
+        'When the back reaches the last slot, new values wrap into the free slots at the front.',
+        'When the ring is full it doubles once and copies the values in order. That cost is spread over many pushes.',
+      ],
+      naive: [
+        '<code>Array.prototype.shift</code> moves every remaining element one place to the left.',
+        'Engines speed up some cases, but on a large queue each shift tends to cost time in proportion to its length.',
+        'A busy queue that shifts in a loop can turn linear work into quadratic work.',
+      ],
+    },
+    code(mode, s) {
+      const last = 9 + s;
+      return [
+        mode === 'quorin'
+          ? '<span class="k">const</span> queue = <span class="k">new</span> Deque&lt;number&gt;(<span class="n">8</span>);'
+          : '<span class="k">const</span> queue: number[] = [];',
+        '<span class="k">for</span> (<span class="k">let</span> i = <span class="n">1</span>; i &lt;= <span class="n">6</span>; i++) queue.push(i);',
+        `<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; <span class="n">${s}</span>; i++) queue.shift();`,
+        `<span class="k">for</span> (<span class="k">let</span> i = <span class="n">7</span>; i &lt;= <span class="n">${last}</span>; i++) queue.push(i);`,
+      ];
+    },
+    hubs: (mode) => (mode === 'quorin' ? [{ x: CENTER.x, y: CENTER.y, r: 26, fill: 'hub' }] : []),
+    stat(mode) {
+      if (mode === 'quorin') return svgText(40, 300, 'ring buffer', 'cap');
+      return svgText(110, 120, 'queue[0]', 'cap-strong', 'middle') + svgText(40, 300, 'array', 'cap');
+    },
+    hud(h, mode) {
+      let s = '';
+      const moved = Math.round(h.moved || 0);
+      if (mode === 'quorin') {
+        const cap = Number(h.cap || 8);
+        for (let i = 0; i < cap; i++) {
+          const p = ringPos(i, cap);
+          const t = ringPos(i, cap, 26);
+          s += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="15" style="fill:none;stroke:var(--line)" stroke-dasharray="3 3" stroke-width="1.5"/>`;
+          s += svgText(t.x.toFixed(1), (t.y + 4).toFixed(1), String(i), 'cap', 'middle');
+        }
+        const a = -Math.PI / 2 + ((h.head || 0) * 2 * Math.PI) / cap;
+        const len = ringRadius(cap) - 34;
+        const hx = CENTER.x + Math.cos(a) * len;
+        const hy = CENTER.y + Math.sin(a) * len;
+        s += `<line x1="${CENTER.x}" y1="${CENTER.y}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" style="stroke:var(--ink)" stroke-width="2.5" stroke-linecap="round"/>`;
+        s += `<circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="4" style="fill:var(--ink)"/>`;
+        s += svgText(40, 60, `capacity ${cap}`, 'cap-strong') + svgText(40, 80, `size ${Math.round(h.size || 0)}`, 'cap');
+        s += svgText(40, 100, `head at slot ${Math.round(h.head || 0)}`, 'cap');
+        s += svgText(680, 60, `values moved: ${moved}`, 'cap-strong', 'end');
+        if (h.note) s += svgText(680, 80, h.note, 'cap', 'end');
+      } else {
+        const len = Math.round(h.size || 0);
+        for (let i = 0; i < len; i++) s += svgText(110 + i * 50, 212, String(i), 'cap', 'middle');
+        s += svgText(40, 60, `length ${len}`, 'cap-strong');
+        s += svgText(680, 60, `values moved: ${moved}`, 'cap-strong', 'end', `style="fill:var(--${moved ? 'bad' : 'ink'})"`);
+      }
+      return s;
+    },
+    build(mode, shifts) {
+      const T = timeline();
+      const last = 9 + shifts;
+      let moved = 0;
+      let newest = null;
+      const fresh = (id) => {
+        if (newest) T.set(newest, { fill: 'blue' });
+        newest = id;
+      };
+      if (mode === 'naive') {
+        const arr = [];
+        const pos = (i) => ({ x: 110 + i * 50, y: 170 });
+        T.hud({ size: 0, moved: 0 });
+        T.push(400, [0], 'an empty array', '');
+        const push = (v, line) => {
+          fresh('v' + v);
+          arr.push(v);
+          const p = pos(arr.length - 1);
+          T.set('v' + v, Object.assign(p, { sx: p.x + 60, sy: p.y, r: 12, fill: 'sky', label: String(v) }));
+          T.hud({ size: arr.length });
+          T.push(360, [line], `push(${v}) appends at index ${arr.length - 1}`, '');
+        };
+        for (let v = 1; v <= 6; v++) push(v, 1);
+        let gone = null;
+        for (let k = 0; k < shifts; k++) {
+          if (gone) T.del(gone);
+          if (newest) T.set(newest, { fill: 'blue' });
+          newest = null;
+          const v = arr.shift();
+          gone = 'v' + v;
+          T.set(gone, { x: 110, y: 96, r: 9, fill: 'dot-muted', label: '' });
+          arr.forEach((x, i) => T.set('v' + x, Object.assign(pos(i), { fill: 'bad' })));
+          moved += arr.length;
+          T.hud({ size: arr.length, moved });
+          T.push(700, [2], `shift() returns ${v}, and the other ${arr.length} values each move one place left`, '');
+          arr.forEach((x) => T.set('v' + x, { fill: 'blue' }));
+        }
+        if (gone) T.del(gone);
+        for (let v = 7; v <= last; v++) push(v, 3);
+        T.push(1200, [2], `${shifts} shifts moved ${moved} values; on a queue of 100,000, one shift can move 100,000`, '');
+        return T.frames;
+      }
+      let cap = 8;
+      let buf = new Array(8).fill(null);
+      let head = 0;
+      let size = 0;
+      const place = () => {
+        for (let k = 0; k < size; k++) {
+          const slot = (head + k) % cap;
+          T.set('v' + buf[slot], ringPos(slot, cap));
+        }
+        T.hud({ head, size, cap: String(cap), moved });
+      };
+      T.hud({ head: 0, size: 0, cap: '8', moved: 0, note: '' });
+      T.push(400, [0], 'new Deque(8): a ring of 8 slots', '');
+      const push = (v, line) => {
+        if (size === cap) {
+          const vals = [];
+          for (let k = 0; k < size; k++) vals.push(buf[(head + k) % cap]);
+          cap *= 2;
+          buf = new Array(cap).fill(null);
+          vals.forEach((x, k) => { buf[k] = x; });
+          head = 0;
+          moved += vals.length;
+          if (newest) T.set(newest, { fill: 'blue' });
+          newest = null;
+          place();
+          T.hud({ note: 'one copy while growing' });
+          T.push(1000, [line], `the ring is full: it doubles to ${cap} slots and copies ${vals.length} values in order, once`, '');
+        }
+        const slot = (head + size) % cap;
+        const wrapped = slot < head;
+        buf[slot] = v;
+        size++;
+        fresh('v' + v);
+        const p = ringPos(slot, cap);
+        const from = ringPos(slot, cap, 46);
+        T.set('v' + v, Object.assign(p, { sx: from.x, sy: from.y, r: 12, fill: 'sky', label: String(v) }));
+        place();
+        T.push(wrapped ? 620 : 380, [line], wrapped ? `push(${v}) wraps around into free slot ${slot}` : `push(${v}) goes into slot ${slot}`, '');
+      };
+      for (let v = 1; v <= 6; v++) push(v, 1);
+      let gone = null;
+      for (let k = 0; k < shifts; k++) {
+        if (gone) T.del(gone);
+        if (newest) T.set(newest, { fill: 'blue' });
+        newest = null;
+        const v = buf[head];
+        const out = ringPos(head, cap, 46);
+        buf[head] = null;
+        head = (head + 1) % cap;
+        size--;
+        gone = 'v' + v;
+        T.set(gone, { x: out.x, y: out.y, r: 8, fill: 'dot-muted', label: '' });
+        place();
+        T.push(620, [2], `shift() returns ${v}: only the head moves, nothing else is touched`, '');
+      }
+      if (gone) T.del(gone);
+      for (let v = 7; v <= last; v++) push(v, 3);
+      T.push(1200, [3], `${shifts} shifts moved nothing; growing copied ${moved} values once`, '');
+      return T.frames;
+    },
+  };
+
+  const SCENES = [channelScene, selectScene, groupScene, mutexScene, limitScene, rateScene, flightScene, resilienceScene, cacheScene, dequeScene];
+  const BY_ID = Object.fromEntries(SCENES.map((s) => [s.id, s]));
+  const GROUPS = [
+    ['Concurrency', [channelScene, selectScene, groupScene, mutexScene]],
+    ['Async limits', [limitScene, rateScene, flightScene]],
+    ['Resilience', [resilienceScene]],
+    ['Data', [cacheScene, dequeScene]],
+  ];
+
+  /* ---------------- Renderer ---------------- */
+  function interpolate(a, b, k) {
+    const ids = new Set([...Object.keys(a.ents), ...Object.keys(b.ents)]);
+    const out = {};
+    const s = spring(k);
+    const e = ease(k);
+    for (const id of ids) {
+      const A = a.ents[id];
+      const B = b.ents[id];
+      if (A && B) {
+        const late = k >= 0.5;
+        out[id] = {
+          x: lerp(A.x, B.x, s), y: lerp(A.y, B.y, s), r: lerp(A.r, B.r, e),
+          fill: late ? B.fill : A.fill, label: late ? B.label : A.label, ring: late ? B.ring : A.ring, broken: late ? B.broken : A.broken,
+        };
+      } else if (B) {
+        const sx = B.sx ?? B.x;
+        const sy = B.sy ?? B.y;
+        out[id] = Object.assign({}, B, { x: lerp(sx, B.x, s), y: lerp(sy, B.y, s), r: B.r * Math.min(1, e * 1.6) });
+      } else {
+        out[id] = Object.assign({}, A, { r: Math.max(0, A.r * (1 - e)), label: k < 0.5 ? A.label : '', ring: false });
+      }
+    }
+    return out;
+  }
+
+  function hudAt(a, b, k) {
+    const h = Object.assign({}, k < 0.5 ? a.hud : b.hud);
+    for (const key of Object.keys(h)) {
+      if (typeof a.hud[key] === 'number' && typeof b.hud[key] === 'number') h[key] = lerp(a.hud[key], b.hud[key], k);
+    }
+    return h;
+  }
+
+  function renderDynamic(scene, mode, p, ents, links, hud) {
+    let goo = scene.hubs(mode, p).map((h) => `<circle cx="${h.x}" cy="${h.y}" r="${h.r}" style="fill:var(--${h.fill})"/>`).join('');
+    for (const [aId, bId] of links) {
+      const A = ents[aId];
+      const B = ents[bId];
+      if (A && B && A.r > 1 && B.r > 1) goo += `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke-width="${Math.min(A.r, B.r)}" stroke-linecap="round" style="stroke:var(--${B.fill})"/>`;
+    }
+    let over = '';
+    for (const e of Object.values(ents)) {
+      if (e.r < 0.4) continue;
+      goo += `<circle cx="${e.x.toFixed(1)}" cy="${e.y.toFixed(1)}" r="${e.r.toFixed(2)}" style="fill:var(--${e.fill})"/>`;
+      if (e.ring && e.r > 6) over += `<circle class="ring" cx="${e.x.toFixed(1)}" cy="${e.y.toFixed(1)}" r="${(e.r + 6).toFixed(1)}" style="stroke:var(--${e.ring})"/>`;
+      if (e.broken && e.r > 4) {
+        const d = e.r * 0.45;
+        over += `<path d="M${e.x - d} ${e.y - d} L${e.x + d} ${e.y + d} M${e.x + d} ${e.y - d} L${e.x - d} ${e.y + d}" style="stroke:#fff" stroke-width="2.2" stroke-linecap="round"/>`;
+      } else if (e.label && e.r > 7) {
+        over += `<text class="lbl" x="${e.x.toFixed(1)}" y="${e.y.toFixed(1)}" style="fill:#fff">${esc(e.label)}</text>`;
+      }
+    }
+    return `<g class="goo" filter="url(#goo)">${goo}</g>${over}<g>${scene.hud(hud, mode, p)}</g>`;
+  }
+
+  function stageSvg(scene, mode, p, frame, cls = 'stage') {
+    const a11y = cls === 'stage' ? `role="img" aria-label="${esc(scene.name)} animation"` : 'aria-hidden="true" focusable="false"';
+    return `<svg class="${cls}" viewBox="0 0 720 340" ${a11y}><g>${scene.stat(mode, p)}</g><g data-dyn>${renderDynamic(scene, mode, p, frame.ents, frame.links, frame.hud)}</g></svg>`;
+  }
+
+  function miniPlayer(host, scene) {
+    const p = scene.param.value;
+    const frames = scene.build('quorin', p);
+    const rest = Math.min(frames.length - 1, Math.floor(frames.length / 3));
+    host.innerHTML = stageSvg(scene, 'quorin', p, frames[rest], 'preview');
+    const dyn = host.querySelector('[data-dyn]');
+    let i = rest;
+    let t0 = 0;
+    let raf = 0;
+    const draw = (a, b, k) => { dyn.innerHTML = renderDynamic(scene, 'quorin', p, interpolate(a, b, k), b.links, hudAt(a, b, ease(k))); };
+    function loop(now) {
+      if (!t0) t0 = now;
+      const next = frames[i + 1];
+      if (!next) {
+        if (now - t0 > 1400) { i = 0; t0 = now; draw(frames[0], frames[0], 1); }
+      } else {
+        const k = Math.min(1, (now - t0) / next.dur);
+        draw(frames[i], next, k);
+        if (k >= 1) { i++; t0 = now; }
+      }
+      raf = requestAnimationFrame(loop);
+    }
+    return {
+      start() { if (raf || reduceMotion) return; t0 = 0; raf = requestAnimationFrame(loop); },
+      stop() { cancelAnimationFrame(raf); raf = 0; },
+    };
+  }
+
+  function createPlayer(root, scene) {
+    let mode = 'quorin';
+    let param = scene.param.value;
+    let frames = [];
+    let index = 0;
+    let playing = !reduceMotion;
+    const saved = Number(store.get('quorin.speed'));
+    let speed = [0.5, 1, 2].includes(saved) ? saved : 1;
+    let anim = null;
+    let raf = 0;
+    let restartTimer = 0;
+
+    const stageHost = root.querySelector('[data-stage]');
+    const codeEl = root.querySelector('[data-code]');
+    const logEl = root.querySelector('[data-log]');
+    const noticeEl = root.querySelector('[data-notice]');
+    const playBtn = root.querySelector('[data-play]');
+    const progressEl = root.querySelector('[data-progress]');
+    const paramInput = root.querySelector('[data-param]');
+    const paramOut = root.querySelector('[data-param-out]');
+
+    function rebuild() {
+      frames = scene.build(mode, param);
+      index = 0;
+      anim = null;
+      stageHost.innerHTML = stageSvg(scene, mode, param, frames[0]);
+      const code = scene.code(mode, param);
+      codeEl.innerHTML = code.map((l, i) => `<span class="ln" data-l="${i}">${l || ' '}</span>`).join('');
+      noticeEl.className = 'notice ' + mode;
+      noticeEl.innerHTML = scene.notice[mode].map((n) => `<li>${n}</li>`).join('');
+      syncPanels();
+      root.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+      paramInput.disabled = !!scene.fixedInNaive && mode === 'naive';
+    }
+
+    function drawAt(a, b, k) {
+      const dyn = stageHost.querySelector('[data-dyn]');
+      if (!dyn) return;
+      const ents = interpolate(a, b, k);
+      dyn.innerHTML = renderDynamic(scene, mode, param, ents, b.links, hudAt(a, b, ease(k)));
+    }
+
+    function syncPanels() {
+      const f = frames[index];
+      codeEl.querySelectorAll('.ln').forEach((el) => el.classList.toggle('hl', f.lines.includes(Number(el.dataset.l))));
+      const entries = frames.slice(0, index + 1).filter((fr) => fr.log).slice(-6);
+      logEl.innerHTML = entries.map((fr) => `<li><span class="t">${fr.t === '' || fr.t === undefined ? '' : typeof fr.t === 'number' ? 't' + fr.t : fr.t}</span><span>${esc(fr.log)}</span></li>`).join('');
+      progressEl.textContent = `${index + 1} / ${frames.length}`;
+      playBtn.textContent = playing ? 'Pause' : index >= frames.length - 1 ? 'Replay' : 'Play';
+      playBtn.setAttribute('aria-pressed', String(playing));
+    }
+
+    function tick(now) {
+      raf = 0;
+      if (!anim) return;
+      const k = Math.min(1, (now - anim.start) / anim.dur);
+      drawAt(frames[anim.from], frames[anim.to], k);
+      if (k < 1) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      index = anim.to;
+      anim = null;
+      syncPanels();
+      if (playing) advance();
+    }
+
+    function animateTo(to, dur) {
+      anim = { from: index, to, start: performance.now(), dur: Math.max(1, dur) };
+      if (!raf) raf = requestAnimationFrame(tick);
+    }
+
+    function advance() {
+      if (index >= frames.length - 1) {
+        playing = false;
+        syncPanels();
+        clearTimeout(restartTimer);
+        if (!reduceMotion) {
+          restartTimer = setTimeout(() => {
+            if (!root.isConnected) return;
+            index = 0;
+            drawAt(frames[0], frames[0], 1);
+            playing = true;
+            syncPanels();
+            advance();
+          }, 2400);
+        }
+        return;
+      }
+      animateTo(index + 1, reduceMotion ? 1 : frames[index + 1].dur / speed);
+    }
+
+    function stop() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      if (anim) { index = anim.to; anim = null; drawAt(frames[index], frames[index], 1); }
+      clearTimeout(restartTimer);
+    }
+
+    root.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.mode === mode) return;
+      stop();
+      mode = b.dataset.mode;
+      rebuild();
+      if (playing) advance();
+    }));
+    playBtn.addEventListener('click', () => {
+      if (playing) { playing = false; stop(); syncPanels(); return; }
+      if (index >= frames.length - 1) { index = 0; drawAt(frames[0], frames[0], 1); }
+      playing = true;
+      syncPanels();
+      advance();
+    });
+    root.querySelector('[data-step]').addEventListener('click', () => {
+      playing = false;
+      stop();
+      if (index < frames.length - 1) { syncPanels(); animateTo(index + 1, reduceMotion ? 1 : 260); } else syncPanels();
+    });
+    root.querySelector('[data-back]').addEventListener('click', () => {
+      playing = false;
+      stop();
+      if (index > 0) index--;
+      drawAt(frames[index], frames[index], 1);
+      syncPanels();
+    });
+    root.querySelector('[data-reset]').addEventListener('click', () => {
+      stop();
+      index = 0;
+      drawAt(frames[0], frames[0], 1);
+      syncPanels();
+      if (playing) advance();
+    });
+    const speedSel = root.querySelector('[data-speed]');
+    speedSel.value = String(speed);
+    speedSel.addEventListener('change', (e) => { speed = Number(e.target.value); store.set('quorin.speed', String(speed)); });
+    const onKey = (e) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || palette.open || isTyping(e.target)) return;
+      if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); root.querySelector('[data-step]').click(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); root.querySelector('[data-back]').click(); }
+    };
+    document.addEventListener('keydown', onKey);
+    paramInput.addEventListener('input', () => {
+      param = Number(paramInput.value);
+      paramOut.textContent = String(param);
+      stop();
+      rebuild();
+      if (playing) advance();
+    });
+
+    rebuild();
+    if (playing) advance();
+    return { destroy() { stop(); document.removeEventListener('keydown', onKey); } };
+  }
+
+  /* ---------------- Pages ---------------- */
+  const main = document.getElementById('main');
+  const nav = document.getElementById('nav');
+  const palette = document.getElementById('palette');
+  let current = null;
+
+  function renderNav(route) {
+    const item = (s) => `<a href="#${s.id}" ${route === s.id ? 'aria-current="page"' : ''}><code>${esc(s.name)}</code></a>`;
+    nav.innerHTML = `<div class="nav-group"><a href="#overview" ${route === 'overview' ? 'aria-current="page"' : ''}>Overview</a></div>`
+      + GROUPS.map(([label, list]) => `<div class="nav-group"><div class="nav-label">${esc(label)}</div>${list.map(item).join('')}</div>`).join('');
+  }
+
+  const POOL_CODE = [
+    '<span class="k">import</span> { Channel, createTaskGroup } <span class="k">from</span> <span class="s">\'quorin/async\'</span>;',
+    '',
+    '<span class="k">const</span> jobs = <span class="k">new</span> Channel&lt;Job&gt;(<span class="n">32</span>);',
+    '<span class="k">const</span> workers = createTaskGroup({ signal });',
+    '',
+    '<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; <span class="n">4</span>; i++) {',
+    '  workers.run(<span class="k">async</span> ({ signal }) =&gt; {',
+    '    <span class="k">for await</span> (<span class="k">const</span> job <span class="k">of</span> jobs.values({ signal })) <span class="k">await</span> handle(job, signal);',
+    '  });',
+    '}',
+    '',
+    '<span class="k">for</span> (<span class="k">const</span> job <span class="k">of</span> <span class="k">await</span> loadJobs()) <span class="k">await</span> jobs.send(job, { signal });',
+    'jobs.close();',
+    '<span class="k">const</span> result = <span class="k">await</span> workers.wait(); <span class="c">// first failure cancels the rest</span>',
+  ];
+
+  const NPM_API = 'https://api.npmjs.org/downloads/';
+  const fmt = new Intl.NumberFormat('en-US');
+  const dayLabel = (day) => new Date(day + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  let downloads = null;
+
+  function fetchDownloads() {
+    const get = (path) => fetch(NPM_API + path).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`npm ${r.status}`))));
+    if (!downloads) {
+      downloads = Promise.all([get('point/last-week/quorin'), get('range/last-month/quorin')])
+        .then(([week, month]) => ({ week: week.downloads, days: month.downloads }));
+      downloads.catch(() => { downloads = null; });
+    }
+    return downloads;
+  }
+
+  function renderDownloads(host) {
+    const num = host.querySelector('[data-dl-num]');
+    const cap = host.querySelector('[data-dl-cap]');
+    const wrap = host.querySelector('[data-dl-wrap]');
+    const svg = wrap.querySelector('svg');
+    const dot = wrap.querySelector('.spark-dot');
+    const cross = wrap.querySelector('.spark-x');
+    fetchDownloads().then(({ week, days: all }) => {
+      if (!host.isConnected || !all.length) return;
+      const first = all.findIndex((d) => d.downloads > 0);
+      const days = all.slice(first < 0 ? 0 : Math.max(0, Math.min(first - 1, all.length - 7)));
+      host.classList.remove('loading');
+      num.textContent = fmt.format(week);
+      const W = 300;
+      const H = 48;
+      const max = Math.max(1, ...days.map((d) => d.downloads));
+      const total = days.reduce((sum, d) => sum + d.downloads, 0);
+      const pts = days.map((d, i) => [(i * W) / Math.max(1, days.length - 1), H - 2 - (d.downloads / max) * (H - 6)]);
+      const line = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
+      svg.innerHTML = `<path class="spark-area" d="${line} L${W} ${H} L0 ${H} Z"/><path class="spark-line" d="${line}"/>`;
+      const peak = days.reduce((a, b) => (b.downloads > a.downloads ? b : a));
+      svg.setAttribute('aria-label', `Daily npm downloads since ${dayLabel(days[0].day)}: ${fmt.format(total)} in total, peak ${fmt.format(peak.downloads)} on ${dayLabel(peak.day)}`);
+      const idle = days.length === all.length ? `${fmt.format(total)} in the last 30 days` : `${fmt.format(total)} since ${dayLabel(days[0].day)}`;
+      const show = (i) => {
+        const [x, y] = pts[i];
+        dot.hidden = false;
+        dot.style.left = `${(x / W) * 100}%`;
+        dot.style.top = `${(y / H) * 100}%`;
+        cross.style.left = `${(x / W) * 100}%`;
+      };
+      show(pts.length - 1);
+      cap.textContent = idle;
+      wrap.addEventListener('pointermove', (e) => {
+        const rect = wrap.getBoundingClientRect();
+        const i = Math.max(0, Math.min(days.length - 1, Math.round(((e.clientX - rect.left) / rect.width) * (days.length - 1))));
+        wrap.classList.add('hover');
+        show(i);
+        cap.textContent = `${dayLabel(days[i].day)}: ${fmt.format(days[i].downloads)} downloads`;
+      });
+      wrap.addEventListener('pointerleave', () => {
+        wrap.classList.remove('hover');
+        show(pts.length - 1);
+        cap.textContent = idle;
+      });
+    }).catch(() => {
+      if (!host.isConnected) return;
+      host.classList.remove('loading');
+      host.classList.add('off');
+      cap.innerHTML = '<a href="https://www.npmjs.com/package/quorin">See downloads on npm</a>';
+    });
+  }
+
+  async function copyText(button, text, label) {
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = 'Copied';
+    } catch {
+      button.textContent = 'Select and copy';
+    }
+    setTimeout(() => { button.textContent = label; }, 1600);
+  }
+
+  function overview() {
+    const legend = [
+      ['A dot is a value', 'A job, a request, or a task moving through your program.', '<circle cx="28" cy="18" r="10" style="fill:var(--blue)"/>'],
+      ['Merging is a hand-off', 'When a value passes from one side to the other, it flows like the tail of the Q.', '<g filter="url(#goo)"><circle cx="14" cy="18" r="9" style="fill:var(--hub)"/><line x1="14" y1="18" x2="40" y2="18" stroke-width="7" style="stroke:var(--lilac)"/><circle cx="42" cy="18" r="9" style="fill:var(--lilac)"/></g>'],
+      ['A spinning ring is waiting', 'The value is parked: a send waiting for room, or a task in flight.', '<circle cx="28" cy="18" r="9" style="fill:var(--blue)"/><circle class="ring" cx="28" cy="18" r="15" style="stroke:var(--warn)"/>'],
+      ['A cross is cancelled or failed', 'The work stopped. Red means it was lost or failed.', '<circle cx="28" cy="18" r="10" style="fill:var(--bad)"/><path d="M23.5 13.5 L32.5 22.5 M32.5 13.5 L23.5 22.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>'],
+    ];
+    const stats = [['0', 'runtime dependencies'], ['10', 'subpath modules'], ['5.8+', 'TypeScript'], ['22.19+', 'Node.js']];
+    const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    main.innerHTML = `
+      <div class="page">
+        <div class="bento">
+          <section class="tile tile-hero" aria-labelledby="hero-title">
+            <div class="hero-top">
+              <h1 class="wordmark hero-title" id="hero-title" aria-label="Quorin"><svg class="mark" aria-hidden="true"><use href="#mark"/></svg><span aria-hidden="true">uor<span class="dotless">ı</span>n</span></h1>
+              <p class="lead">The small TypeScript primitives I reach for on almost every project. Watch each one work, next to the quick version it replaces.</p>
+              <div class="chips" aria-label="Modules">${['struct', 'object', 'bytes', 'async', 'signal', 'result', 'boundary', 'resilience', 'cache', 'state'].map((m) => `<code>quorin/${m}</code>`).join('')}</div>
+            </div>
+            <div class="cta">
+              <a class="btn-solid" href="#channel">Start with Channel</a>
+              <a class="btn-ghost" href="${DOCS}README.md">Read the docs</a>
+              <span class="hint"><kbd>${palKey}</kbd> to jump anywhere</span>
+            </div>
+          </section>
+          <section class="tile tile-install" aria-label="Install">
+            <span class="tile-label">Install</span>
+            <div class="cmdline"><span class="prompt" aria-hidden="true">$</span><span id="install-text">npm install quorin</span></div>
+            <p>One ESM build with types. <code>require()</code> works too.</p>
+            <button class="btn-on-solid" id="copy-install" type="button">Copy</button>
+          </section>
+          <a class="tile tile-live" href="#select" aria-label="Open the select visualizer">
+            <span data-live></span>
+            <span class="live-cap"><code>select</code><span>exactly one case wins</span></span>
+          </a>
+          <section class="tile tile-code" aria-label="Example">
+            <div class="code-head"><span>worker-pool.ts</span><button class="btn" id="copy-code" type="button">Copy</button></div>
+            <pre class="code">${POOL_CODE.map((l) => `<span class="ln">${l || ' '}</span>`).join('')}</pre>
+          </section>
+          <section class="tile tile-stats" aria-label="Facts">
+            <div class="dl loading" data-dl>
+              <div class="stat-num" data-dl-num>0</div>
+              <div class="stat-txt">npm downloads last week</div>
+              <div class="spark-wrap" data-dl-wrap><svg class="spark" viewBox="0 0 300 48" preserveAspectRatio="none" role="img" aria-label="Daily npm downloads, loading"></svg><span class="spark-x"></span><span class="spark-dot" hidden></span></div>
+              <div class="dl-cap" data-dl-cap aria-live="polite"></div>
+            </div>
+            ${stats.map(([n, t]) => `<div><div class="stat-num">${n}</div><div class="stat-txt">${t}</div></div>`).join('')}
+          </section>
+        </div>
+        <section class="section reveal">
+          <h2>How to read the animations</h2>
+          <div class="legend-grid">${legend.map(([t, d, g]) => `<div class="legend-item"><svg viewBox="0 0 56 36" aria-hidden="true">${g}</svg><div><strong>${t}</strong><span>${d}</span></div></div>`).join('')}</div>
+        </section>
+        <section class="section">
+          <h2>Visualizers</h2>
+          <p>Each one plays with quorin first. Switch to the naive version to see the bug it prevents. Hover a card to preview it.</p>
+          ${GROUPS.map(([label, list]) => `
+            <h3 class="group-title">${esc(label)}</h3>
+            <div class="cards">${list.map((s) => `<a class="card reveal" href="#${s.id}" data-card="${s.id}"><span data-preview="${s.id}"></span><h3>${esc(s.name)}</h3><p>${esc(s.use)}</p></a>`).join('')}</div>`).join('')}
+        </section>
+      </div>`;
+    const minis = [];
+    main.querySelectorAll('[data-card]').forEach((card) => {
+      const mini = miniPlayer(card.querySelector('[data-preview]'), BY_ID[card.dataset.card]);
+      minis.push(mini);
+      card.addEventListener('pointerenter', mini.start);
+      card.addEventListener('pointerleave', mini.stop);
+      card.addEventListener('focus', mini.start);
+      card.addEventListener('blur', mini.stop);
+      card.addEventListener('click', () => { card.querySelector('.preview').style.viewTransitionName = 'stage'; });
+    });
+    const liveTile = main.querySelector('.tile-live');
+    const live = miniPlayer(main.querySelector('[data-live]'), selectScene);
+    minis.push(live);
+    liveTile.addEventListener('click', () => { liveTile.querySelector('.preview').style.viewTransitionName = 'stage'; });
+    let observer = null;
+    if ('IntersectionObserver' in window) {
+      observer = new IntersectionObserver((entries) => entries.forEach((en) => (en.isIntersecting ? live.start() : live.stop())));
+      observer.observe(liveTile);
+    } else live.start();
+    const copyInstall = document.getElementById('copy-install');
+    copyInstall.addEventListener('click', () => copyText(copyInstall, 'npm install quorin', 'Copy'));
+    const copyCode = document.getElementById('copy-code');
+    copyCode.addEventListener('click', () => copyText(copyCode, POOL_CODE.map(plain).join('\n'), 'Copy'));
+    renderDownloads(main.querySelector('[data-dl]'));
+    return { destroy() { minis.forEach((m) => m.stop()); if (observer) observer.disconnect(); } };
+  }
+
+  /* ---------------- Command palette ---------------- */
+  const palKey = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘K' : 'Ctrl K';
+  document.getElementById('palette-key').textContent = palKey;
+  const palInput = document.getElementById('palette-input');
+  const palList = document.getElementById('palette-list');
+  const ITEMS = [{ id: 'overview', name: 'Overview', use: 'What quorin is and how to read the animations.', group: '' }]
+    .concat(GROUPS.flatMap(([group, list]) => list.map((s) => ({ id: s.id, name: s.name, use: s.use, group }))));
+  let palActive = 0;
+  let palMatches = ITEMS;
+
+  function palRender() {
+    const q = palInput.value.trim().toLowerCase();
+    palMatches = ITEMS.filter((it) => !q || `${it.name} ${it.group} ${it.use}`.toLowerCase().includes(q));
+    palActive = Math.min(palActive, Math.max(0, palMatches.length - 1));
+    palList.innerHTML = palMatches.length
+      ? palMatches.map((it, i) => `<li role="option" id="pal-${i}" aria-selected="${i === palActive}" data-page="${it.id}"><code>${esc(it.name)}</code><span>${esc(it.group ? it.group + ': ' : '')}${esc(it.use)}</span></li>`).join('')
+      : '<li class="empty" role="option" aria-disabled="true" aria-selected="false">No match</li>';
+    if (palMatches.length) palInput.setAttribute('aria-activedescendant', `pal-${palActive}`);
+    else palInput.removeAttribute('aria-activedescendant');
+    const active = palList.querySelector('[aria-selected="true"]');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+  }
+  function openPalette() {
+    if (palette.open) return;
+    palInput.value = '';
+    palActive = 0;
+    palRender();
+    palette.showModal();
+    palInput.focus();
+  }
+  function openPage(id) {
+    palette.close();
+    if (location.hash.replace('#', '') === id) return;
+    location.hash = id;
+  }
+  palInput.addEventListener('input', () => { palActive = 0; palRender(); });
+  palInput.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!palMatches.length) return;
+      palActive = (palActive + (e.key === 'ArrowDown' ? 1 : -1) + palMatches.length) % palMatches.length;
+      palRender();
+    } else if (e.key === 'Enter' && palMatches[palActive]) {
+      e.preventDefault();
+      openPage(palMatches[palActive].id);
+    }
+  });
+  palList.addEventListener('click', (e) => {
+    const li = e.target.closest('[data-page]');
+    if (li) openPage(li.dataset.page);
+  });
+  palette.addEventListener('click', (e) => { if (e.target === palette) palette.close(); });
+  document.getElementById('open-palette').addEventListener('click', openPalette);
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (palette.open) palette.close();
+      else openPalette();
+    } else if (e.key === '/' && !palette.open && !isTyping(e.target)) {
+      e.preventDefault();
+      openPalette();
+    }
+  });
+
+  function vizPage(scene) {
+    main.innerHTML = `
+      <div class="page">
+        <header class="viz-head">
+          <span class="eyebrow">${esc(scene.subpath)}</span>
+          <h1>${esc(scene.name)}</h1>
+          <p>${esc(scene.use)}</p>
+        </header>
+        <div class="toolbar">
+          <div class="seg" role="group" aria-label="Version">
+            <button type="button" data-mode="quorin" aria-pressed="true">With quorin</button>
+            <button type="button" data-mode="naive" aria-pressed="false">Naive version</button>
+          </div>
+          <a class="doclink" href="${DOCS}${scene.doc}">Read the docs</a>
+        </div>
+        <div class="stage-card">
+          <div data-stage></div>
+          <div class="legend-row">${scene.legend.map(([c, l]) => `<span><i style="background:var(--${c})"></i>${esc(l)}</span>`).join('')}<span class="keys"><kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> step</span></div>
+          <div class="controls">
+            <button class="btn" type="button" data-play aria-pressed="false">Play</button>
+            <button class="btn" type="button" data-back aria-label="Step back">Back</button>
+            <button class="btn" type="button" data-step aria-label="Step forward">Step</button>
+            <button class="btn" type="button" data-reset>Reset</button>
+            <span class="progress" data-progress></span>
+            <span class="spacer"></span>
+            <label for="param-${scene.id}">${esc(scene.param.label)}
+              <input id="param-${scene.id}" type="range" min="${scene.param.min}" max="${scene.param.max}" step="1" value="${scene.param.value}" data-param>
+              <output data-param-out>${scene.param.value}</output>
+            </label>
+            <label for="speed-${scene.id}">Speed
+              <select id="speed-${scene.id}" data-speed><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option></select>
+            </label>
+          </div>
+        </div>
+        <div class="panels">
+          <pre class="code" data-code aria-label="Code"></pre>
+          <div class="side-panel">
+            <div class="box"><h3>What is happening</h3><ol class="log" data-log aria-live="polite"></ol></div>
+            <div class="box"><h3>What to notice</h3><ul class="notice" data-notice></ul></div>
+          </div>
+        </div>
+      </div>`;
+    return createPlayer(main.firstElementChild, scene);
+  }
+
+  let firstRoute = true;
+  function route() {
+    const id = location.hash.replace('#', '') || 'overview';
+    const swap = () => {
+      if (current) current.destroy();
+      current = null;
+      const scene = BY_ID[id];
+      renderNav(scene ? id : 'overview');
+      current = scene ? vizPage(scene) : overview();
+      window.scrollTo(0, 0);
+    };
+    if (!firstRoute && document.startViewTransition && !reduceMotion) document.startViewTransition(swap);
+    else swap();
+    firstRoute = false;
+  }
+
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+</body>
+</html>
