@@ -2,7 +2,13 @@ import { z } from 'zod';
 import { defineBoundary, type BoundaryValidationError } from '../../src/boundary/index.ts';
 import { createCache, type Cache, type LoadingCache } from '../../src/cache/index.ts';
 import { deepMerge, getPath, setPath, type Path, type PathValue } from '../../src/object/index.ts';
-import { concurrencyLimit, createChannel, createRateLimiter, mapAsync, singleFlight, ChannelError, QueueError, type Channel } from '../../src/async/index.ts';
+import {
+  Channel,
+  createRateLimiter,
+  singleFlight,
+  type ChannelReceiver,
+  type ChannelSender,
+} from '../../src/async/index.ts';
 import { onAbort, timeoutSignal } from '../../src/signal/index.ts';
 import { parseRetryAfter, withResilience, type RunFailure } from '../../src/resilience/index.ts';
 import { err, ok, trySafe, trySafeSync, type SafeResult } from '../../src/result/index.ts';
@@ -109,18 +115,27 @@ void withResilience(async () => 1, {
 void withResilience(async () => 1, { retryDelayMs: () => 'soon' });
 const parsed = parseRetryAfter('120');
 expectType<Equal<typeof parsed, number | null>>();
-const numberChannel = createChannel<number>();
-void numberChannel.put(1).then(() => undefined);
-void numberChannel.take().then((value) => expectType<Equal<typeof value, number>>());
-// @ts-expect-error puts must match the declared value type
-void numberChannel.put('one');
+const numberChannel = new Channel<number>();
+void numberChannel.send(1).then(() => undefined);
+void numberChannel.receive().then((value) => expectType<Equal<typeof value, number>>());
+// @ts-expect-error sends must match the declared value type
+void numberChannel.send('one');
+const probe = numberChannel.tryReceive();
+if (probe.ok) expectType<Equal<typeof probe.value, number>>();
+else expectType<Equal<typeof probe.closed, boolean>>();
+const sender: ChannelSender<number> = numberChannel.sendOnly();
+const receiver: ChannelReceiver<number> = numberChannel.receiveOnly();
+// @ts-expect-error receive-only views cannot close the channel
+receiver.close();
+void sender;
 declare const genericChannel: Channel<{ id: string } | undefined>;
-async function drain(channel: Channel<{ id: string } | undefined>): Promise<({ id: string } | undefined)[]> {
+async function drain(channel: ChannelReceiver<{ id: string } | undefined>): Promise<({ id: string } | undefined)[]> {
   const seen: ({ id: string } | undefined)[] = [];
   for await (const value of channel) seen.push(value);
   return seen;
 }
 void drain(genericChannel);
+
 const loadProfile = singleFlight(async (args: readonly [id: string], { signal }: { signal: AbortSignal }) =>
   fetch(args[0], { signal }).then((response) => response.json() as Promise<unknown>),
 );
