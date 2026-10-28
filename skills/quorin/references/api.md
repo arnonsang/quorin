@@ -7,7 +7,7 @@ Compact signatures, options, and defaults for every export. Types are simplified
 - [struct](#struct): Deque, ValueMap, Multimap
 - [object](#object): getPath, setPath, deepMerge, stableStringify, SecurityError
 - [bytes](#bytes): concatBytes, equalsBytes, stringToBytes, bytesToString, toHex, fromHex, toBase64, fromBase64, fastHash
-- [async](#async): concurrencyLimit, mapAsync, QueueError
+- [async](#async): concurrencyLimit, mapAsync, createChannel, QueueError, ChannelError
 - [result](#result): ok, err, trySafe, trySafeSync, isDefect, DefectError
 - [boundary](#boundary): parseEnv, defineBoundary, formatIssues, BoundaryValidationError
 - [resilience](#resilience): withResilience, parseRetryAfter, isUserAbort
@@ -128,6 +128,23 @@ function mapAsync<T, R>(
 ): Promise<R[]>;
 ```
 Input order preserved, input snapshotted, sparse arrays rejected. First failure or abort stops new starts, aborts running mappers, rejects with that error or reason.
+
+```ts
+function createChannel<T>(options?: { capacity?: number; maxPending?: number }): Channel<T>;
+// capacity default 0 (rendezvous: every put waits for a take), maxPending default 1024 waiting puts
+
+interface Channel<T> {
+  put(value: T, options?: { signal?: AbortSignal }): Promise<void>;  // rejects: CHANNEL_CLOSED, QUEUE_FULL, abort reason
+  take(options?: { signal?: AbortSignal }): Promise<T>;              // rejects: CHANNEL_CLOSED after drain, abort reason
+  close(): void;                                                     // idempotent; waiting puts/takes reject, buffer drains
+  readonly size: number;            // buffered values
+  readonly pendingPuts: number;
+  readonly pendingTakes: number;
+  readonly closed: boolean;
+  [Symbol.asyncIterator](): AsyncIterator<T>;  // yields until closed and drained
+}
+```
+Values are references, `undefined` allowed. FIFO both sides; an arriving take hands the oldest waiting put straight through. Waiting puts beyond `maxPending` reject `QueueError` `QUEUE_FULL`; operations on a closed (and drained) channel reject `ChannelError` `CHANNEL_CLOSED`.
 
 ## result
 
@@ -271,7 +288,8 @@ Default traversal limits everywhere: `maxDepth` 128, `maxNodes` 100000.
 | `CAPACITY_EXCEEDED` | RangeError | Deque or concatBytes size limit |
 | `CONCURRENT_MODIFICATION` | Error | Deque mutated while iterating |
 | `VALIDATION_FAILED` | BoundaryValidationError | parseEnv, defineBoundary |
-| `QUEUE_FULL`, `QUEUE_CLEARED` | QueueError | concurrencyLimit |
+| `QUEUE_FULL`, `QUEUE_CLEARED` | QueueError | concurrencyLimit; `QUEUE_FULL` also from createChannel puts |
+| `CHANNEL_CLOSED` | ChannelError | createChannel after close and drain |
 | `CACHE_BUSY`, `CACHE_INVALIDATED`, `CACHE_LOAD_TIMEOUT` | CacheError | loading caches |
 
 Check with `(error as { code?: unknown }).code === 'QUEUE_FULL'` or `error instanceof QueueError && error.code === 'QUEUE_FULL'`.

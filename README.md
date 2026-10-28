@@ -133,7 +133,7 @@ Import everything from the root, or import one module through its subpath. Both 
 | `quorin/struct` | Data structures | `Deque`, `ValueMap`, `Multimap` |
 | `quorin/object` | Paths and JSON data | `getPath`, `setPath`, `deepMerge`, `stableStringify`, `SecurityError` |
 | `quorin/bytes` | Byte conversion and hashing | `concatBytes`, `equalsBytes`, `stringToBytes`, `bytesToString`, `toHex`, `fromHex`, `toBase64`, `fromBase64`, `fastHash` |
-| `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `QueueError` |
+| `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `createChannel`, `QueueError`, `ChannelError` |
 | `quorin/result` | Explicit outcomes | `ok`, `err`, `trySafe`, `trySafeSync`, `isDefect`, `DefectError` |
 | `quorin/boundary` | Standard Schema validation | `parseEnv`, `defineBoundary`, `formatIssues`, `BoundaryValidationError` |
 | `quorin/resilience` | Retries and deadlines | `withResilience`, `parseRetryAfter`, `isUserAbort` |
@@ -358,6 +358,31 @@ const pages = await mapAsync(urls, async (url, index, { signal }) => {
 ```
 
 Results are returned in input order. The input array is snapshotted when the call starts, and sparse arrays are rejected. The first mapper failure or a caller abort stops new work, aborts the signal passed to running mappers, and rejects. Work that already started may continue; its settlement is still observed so nothing becomes an unhandled rejection. Result storage is O(n) and scheduling state is O(concurrency). This is an array mapper, not a streaming API.
+
+### `createChannel({ capacity = 0, maxPending = 1024 })`
+
+```ts
+import { createChannel } from 'quorin/async';
+
+const channel = createChannel<string>({ capacity: 16 });
+
+await channel.put(delta, { signal });  // waits while the buffer is full: backpressure
+const delta = await channel.take({ signal });
+channel.close();                       // buffered values stay takeable, then takes reject
+
+for await (const value of channel) {
+  render(value);                       // ends after close and drain
+}
+```
+
+- `capacity` bounds buffered values. The default `0` means every `put` waits for a `take`, so backpressure is immediate and nothing accumulates.
+- `maxPending` bounds waiting puts. Beyond it, `put` rejects with `QueueError` code `QUEUE_FULL`, so a producer that cannot await (an event handler) fails loudly instead of growing forever.
+- `close()` stops puts, rejects waiting puts and takes with `ChannelError` code `CHANNEL_CLOSED`, and lets buffered values drain first. A `put` after close rejects. Idempotent.
+- `put` and `take` accept `{ signal }`. Aborting removes the waiter and rejects with the signal's reason; that is caller cancellation, distinct from closing.
+- Values are passed by reference; `undefined` is a valid value. `size`, `pendingPuts`, `pendingTakes`, and `closed` are live counters.
+- A waiting put never coexists with a waiting take: an arriving take hands the oldest waiting put straight through without touching the buffer. Order is FIFO on both sides.
+
+Use a channel to bridge a push source (events, SSE frames) to pull-based consumers with a bounded, abort-aware queue in between; `mapAsync` is for arrays, not streams.
 
 ---
 
@@ -722,7 +747,8 @@ Configuration mistakes and unsupported synchronous input throw. Async entry poin
 | `CAPACITY_EXCEEDED` | A deque or byte concatenation beyond its size limit. |
 | `CONCURRENT_MODIFICATION` | A deque changed during iteration. |
 | `VALIDATION_FAILED` | `BoundaryValidationError`. |
-| `QUEUE_FULL`, `QUEUE_CLEARED` | `QueueError` from `concurrencyLimit`. |
+| `QUEUE_FULL`, `QUEUE_CLEARED` | `QueueError` from `concurrencyLimit`, and `QUEUE_FULL` from `createChannel` when too many puts wait. |
+| `CHANNEL_CLOSED` | `ChannelError` from `createChannel` after `close` and drain. |
 | `CACHE_BUSY`, `CACHE_INVALIDATED`, `CACHE_LOAD_TIMEOUT` | `CacheError` from loading caches. |
 
 ```ts

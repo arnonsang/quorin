@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { defineBoundary, type BoundaryValidationError } from '../../src/boundary/index.ts';
 import { createCache, type Cache, type LoadingCache } from '../../src/cache/index.ts';
 import { deepMerge, getPath, setPath, type Path, type PathValue } from '../../src/object/index.ts';
+import { createChannel, type Channel } from '../../src/async/index.ts';
 import { parseRetryAfter, withResilience, type RunFailure } from '../../src/resilience/index.ts';
 import { err, ok, trySafe, trySafeSync, type SafeResult } from '../../src/result/index.ts';
 import { ValueMap } from '../../src/struct/index.ts';
@@ -107,6 +108,18 @@ void withResilience(async () => 1, {
 void withResilience(async () => 1, { retryDelayMs: () => 'soon' });
 const parsed = parseRetryAfter('120');
 expectType<Equal<typeof parsed, number | null>>();
+const numberChannel = createChannel<number>();
+void numberChannel.put(1).then(() => undefined);
+void numberChannel.take().then((value) => expectType<Equal<typeof value, number>>());
+// @ts-expect-error puts must match the declared value type
+void numberChannel.put('one');
+declare const genericChannel: Channel<{ id: string } | undefined>;
+async function drain(channel: Channel<{ id: string } | undefined>): Promise<({ id: string } | undefined)[]> {
+  const seen: ({ id: string } | undefined)[] = [];
+  for await (const value of channel) seen.push(value);
+  return seen;
+}
+void drain(genericChannel);
 
 const map = new ValueMap<{ id: number }, string>();
 // @ts-expect-error keys must be JSON values

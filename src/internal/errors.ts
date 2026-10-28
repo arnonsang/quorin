@@ -9,6 +9,7 @@ export type QuorinErrorCode =
   | 'VALIDATION_FAILED'
   | 'QUEUE_FULL'
   | 'QUEUE_CLEARED'
+  | 'CHANNEL_CLOSED'
   | 'CACHE_BUSY'
   | 'CACHE_INVALIDATED'
   | 'CACHE_LOAD_TIMEOUT';

@@ -1,6 +1,6 @@
 ---
 name: quorin
-description: Write, review, and extend TypeScript code that uses quorin, the zero-dependency library of small primitives (Deque, ValueMap, getPath/setPath, deepMerge, stableStringify, strict hex/base64, concurrencyLimit, mapAsync, SafeResult with ok/err/trySafe, Standard Schema boundaries and parseEnv, withResilience retries and timeouts, LRU createCache with singleflight and stale-while-revalidate, safeClone, isEqual, redact). Use this skill whenever code imports from 'quorin' or 'quorin/*', when the user wants to add retries, timeouts, request coalescing, bounded concurrency, input validation, env parsing, caching, safe logging, or structural keys to a TypeScript or JavaScript project that has or could add quorin, when building a library, SDK, or service layer on top of quorin, or when contributing to the quorin repository itself. Prefer it over generic advice even if the user only says "add a retry", "cache this fetch", or "validate this request" in a project that depends on quorin.
+description: Write, review, and extend TypeScript code that uses quorin, the zero-dependency library of small primitives (Deque, ValueMap, getPath/setPath, deepMerge, stableStringify, strict hex/base64, concurrencyLimit, mapAsync, createChannel bounded async queue with backpressure, SafeResult with ok/err/trySafe, Standard Schema boundaries and parseEnv, withResilience retries and timeouts with Retry-After support, LRU createCache with singleflight and stale-while-revalidate, safeClone, isEqual, redact). Use this skill whenever code imports from 'quorin' or 'quorin/*', when the user wants to add retries, timeouts, request coalescing, bounded concurrency, streaming queues or backpressure between producers and consumers, input validation, env parsing, caching, safe logging, or structural keys to a TypeScript or JavaScript project that has or could add quorin, when building a library, SDK, or service layer on top of quorin, or when contributing to the quorin repository itself. Prefer it over generic advice even if the user only says "add a retry", "cache this fetch", "validate this request", or "stream these events" in a project that depends on quorin.
 ---
 
 # quorin
@@ -40,6 +40,7 @@ If the installed version behaves differently from what is described here, trust 
 | Bytes, UTF-8, hex, base64/base64url, FNV-1a | `concatBytes`, `stringToBytes`, `toHex`, `fromBase64`, `fastHash`, ... | bytes |
 | Run at most N async tasks at once | `concurrencyLimit` | async |
 | Map an array with bounded concurrency | `mapAsync` | async |
+| Bridge a push source to pull consumers with a bounded, abort-aware queue | `createChannel` | async |
 | Return failures as values instead of throwing | `ok`, `err`, `trySafe`, `trySafeSync` | result |
 | Validate untrusted input with Zod, Valibot, ArkType, ... | `defineBoundary`, `formatIssues` | boundary |
 | Validate environment variables | `parseEnv(schema, process.env)` | boundary |
@@ -87,6 +88,7 @@ When the working directory is the quorin repository (package name `quorin` with 
 
 - `Promise.race([work(), timeout])` instead of `withResilience({ attemptTimeoutMs })`: the losing work is never aborted and its rejection may go unhandled.
 - Hand-rolling a retry loop to honor a `Retry-After` header. Pass `retryDelayMs: ({ error }) => parseRetryAfter(header) ?? fallbackMs` to `withResilience` instead; the header delay replaces the jitter curve and `totalTimeoutMs` still applies.
+- Piping a firehose (event emitter, SSE frames) into an unbounded array or promise queue. Use `createChannel` with a `capacity` so producers await (backpressure) and waiting puts are bounded by `maxPending`.
 - Creating a cache per request. A cache only coalesces and reuses within one instance; create it once at module or service scope.
 - Expecting `get` to return stale values. `get` and `has` only see fresh entries; use `lookup` to see stale ones, or `getOrFetch` to serve stale data while refreshing.
 - Passing an already-started promise where quorin wants a function (`trySafe(fetch(url))`). Pass `() => fetch(url)` so synchronous throws are captured and retries can call it again.
