@@ -3,6 +3,7 @@ import { defineBoundary, type BoundaryValidationError } from '../../src/boundary
 import { createCache, type Cache, type LoadingCache } from '../../src/cache/index.ts';
 import { deepMerge, getPath, setPath, type Path, type PathValue } from '../../src/object/index.ts';
 import { createChannel, type Channel } from '../../src/async/index.ts';
+import { onAbort, timeoutSignal } from '../../src/signal/index.ts';
 import { parseRetryAfter, withResilience, type RunFailure } from '../../src/resilience/index.ts';
 import { err, ok, trySafe, trySafeSync, type SafeResult } from '../../src/result/index.ts';
 import { ValueMap } from '../../src/struct/index.ts';
@@ -120,6 +121,13 @@ async function drain(channel: Channel<{ id: string } | undefined>): Promise<({ i
   return seen;
 }
 void drain(genericChannel);
+const stop = onAbort(undefined, () => undefined);
+expectType<Equal<typeof stop, () => void>>();
+const deadline = timeoutSignal(100);
+expectType<Equal<typeof deadline.signal, AbortSignal>>();
+deadline.cancel();
+void deadline;
+void stop();
 
 const map = new ValueMap<{ id: number }, string>();
 // @ts-expect-error keys must be JSON values

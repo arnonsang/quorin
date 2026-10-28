@@ -4,3 +4,4 @@ coverage/
 *.tgz
 .DS_Store
 .skill-check/
+*.local*

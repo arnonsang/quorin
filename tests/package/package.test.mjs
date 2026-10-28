@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 const root = resolve(import.meta.dirname, '../..');
-const subpaths = ['struct', 'object', 'bytes', 'async', 'result', 'boundary', 'resilience', 'cache', 'state'];
+const subpaths = ['struct', 'object', 'bytes', 'async', 'signal', 'result', 'boundary', 'resilience', 'cache', 'state'];
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 let workspace;
 let fixture;
