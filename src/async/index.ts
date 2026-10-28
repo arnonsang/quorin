@@ -15,6 +15,7 @@ export { createTaskGroup, type TaskGroup, type TaskGroupOptions } from './task-g
 export { Mutex, withLock, type Release } from './mutex.ts';
 export { RWMutex } from './rw-mutex.ts';
 export { KeyedMutex } from './keyed-mutex.ts';
+export { tick } from './tick.ts';
 export { QueueError, type QueueErrorCode } from './queue-error.ts';
 export { ChannelError, type ChannelErrorCode } from './channel-error.ts';
 export type { TaskContext, RunOptions } from './types.ts';

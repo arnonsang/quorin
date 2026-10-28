@@ -13,6 +13,7 @@ import {
   select,
   send,
   spawn,
+  tick,
   whenAborted,
   withLock,
 } from '../../src/async/index.ts';
@@ -712,5 +713,57 @@ describe('KeyedMutex', () => {
     const locks = new KeyedMutex();
     await assert.rejects(locks.with(1 as never, () => 1), code('INVALID_ARGUMENT'));
     await assert.rejects(locks.with('k', 'x' as never), code('INVALID_ARGUMENT'));
+  });
+});
+
+describe('tick', () => {
+  let clock: FakeClock;
+  let restore: () => void;
+
+  beforeEach(() => {
+    ({ clock, restore } = installFakeClock());
+  });
+
+  afterEach(() => restore());
+
+  it('yields tick numbers on the injected clock', async () => {
+    const ticks = tick(100);
+    const first = settled(ticks.next());
+    await clock.advance(99);
+    assert.equal(first.state, 'pending');
+    await clock.advance(1);
+    assert.deepEqual(first.value, { value: 1, done: false });
+    const second = ticks.next();
+    await clock.advance(100);
+    assert.deepEqual(await second, { value: 2, done: false });
+    await ticks.return();
+    assert.equal(clock.pendingTimers, 0);
+  });
+
+  it('skips missed ticks for a slow consumer', async () => {
+    const ticks = tick(100);
+    await clock.advance(350);
+    assert.deepEqual(await ticks.next(), { value: 3, done: false });
+    const next = ticks.next();
+    await clock.advance(50);
+    assert.deepEqual(await next, { value: 4, done: false });
+  });
+
+  it('throws the abort reason and releases its timer', async () => {
+    const controller = new AbortController();
+    const ticks = tick(100, { signal: controller.signal });
+    const waiting = ticks.next();
+    controller.abort('stop');
+    await assert.rejects(waiting, (reason: unknown) => reason === 'stop');
+    assert.equal(clock.pendingTimers, 0);
+    const aborted = tick(100, { signal: AbortSignal.abort('early') });
+    await assert.rejects(aborted.next(), (reason: unknown) => reason === 'early');
+  });
+
+  it('validates arguments', () => {
+    assert.throws(() => tick(0), code('INVALID_ARGUMENT'));
+    assert.throws(() => tick(-1), code('INVALID_ARGUMENT'));
+    assert.throws(() => tick(10, null as never), code('INVALID_ARGUMENT'));
+    assert.throws(() => tick(10, { signal: 'x' as never }), code('INVALID_ARGUMENT'));
   });
 });
