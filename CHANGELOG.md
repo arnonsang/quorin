@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2-rc.0 (2026-10-28)
 
 - `quorin/resilience`: `withResilience` accepts an optional `retryDelayMs(failure)` hook whose value replaces the jittered backoff for that retry (for example a server's `Retry-After`). Caller delays may exceed `maxDelayMs`; `totalTimeoutMs` still caps the run; hook errors reject.
 - `quorin/resilience`: new `parseRetryAfter(header)` parses delta seconds or an IMF-fixdate into whole milliseconds. Past dates return `0`, malformed values return `null`, and it never throws.
