@@ -6,10 +6,12 @@ import {
   after,
   Channel,
   createRateLimiter,
+  createTaskGroup,
   receive,
   select,
   send,
   singleFlight,
+  spawn,
   type ChannelReceiver,
   type ChannelReceiveResult,
   type ChannelSender,
@@ -153,6 +155,15 @@ async function selectNarrowing(jobs: Channel<string>, quit: Channel<number>): Pr
 }
 void selectNarrowing;
 
+const spawned = spawn(async () => 1);
+void spawned.result.then((result) => expectType<Equal<typeof result, SafeResult<number, unknown>>>());
+const mappedSpawn = spawn(async () => 'x', { mapError: () => 'mapped' as const });
+void mappedSpawn.result.then((result) => expectType<Equal<typeof result, SafeResult<string, 'mapped'>>>());
+const group = createTaskGroup<number>();
+group.run(async () => 1);
+// @ts-expect-error tasks must produce the group value type
+group.run(async () => 'one');
+void group.wait().then((result) => expectType<Equal<typeof result, SafeResult<number[], unknown>>>());
 const loadProfile = singleFlight(async (args: readonly [id: string], { signal }: { signal: AbortSignal }) =>
   fetch(args[0], { signal }).then((response) => response.json() as Promise<unknown>),
 );

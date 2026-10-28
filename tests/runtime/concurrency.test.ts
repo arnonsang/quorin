@@ -4,12 +4,15 @@ import {
   after,
   Channel,
   ChannelError,
+  createTaskGroup,
   QueueError,
   receive,
   select,
   send,
+  spawn,
   whenAborted,
 } from '../../src/async/index.ts';
+import { DefectError } from '../../src/result/index.ts';
 import { deferred, flush, settled } from '../helpers/deferred.ts';
 import { installFakeClock, type FakeClock } from '../helpers/fake-clock.ts';
 import { seededRandom } from '../helpers/random.ts';
@@ -367,5 +370,186 @@ describe('select', () => {
     assert.throws(() => after(-1), code('INVALID_ARGUMENT'));
     assert.throws(() => whenAborted(undefined as never), code('INVALID_ARGUMENT'));
     assert.throws(() => whenAborted({} as never), code('INVALID_ARGUMENT'));
+  });
+});
+
+describe('spawn', () => {
+  it('runs at once and resolves a success result', async () => {
+    let started = false;
+    const task = spawn(async ({ signal }) => {
+      started = true;
+      assert.equal(signal.aborted, false);
+      return 42;
+    });
+    assert.equal(started, true);
+    const result = await task.result;
+    assert.equal(result.ok && result.data, 42);
+  });
+
+  it('captures failures as results instead of rejecting', async () => {
+    const task = spawn(() => {
+      throw new TypeError('network');
+    });
+    const result = await task.result;
+    assert.equal(result.ok, false);
+    assert.ok(result.error instanceof TypeError);
+    const mapped = await spawn(() => Promise.reject(new Error('raw')), { mapError: (raw) => (raw as Error).message }).result;
+    assert.equal(mapped.error, 'raw');
+  });
+
+  it('rejects the result for defects', async () => {
+    await assert.rejects(spawn(() => {
+      throw new DefectError('bug');
+    }).result, DefectError);
+  });
+
+  it('aborts the task signal on cancel and on parent abort', async () => {
+    const gate = deferred();
+    const task = spawn(async ({ signal }) => {
+      await gate.promise;
+      return signal.reason;
+    });
+    task.cancel('stop');
+    assert.equal(task.signal.aborted, true);
+    gate.resolve();
+    assert.equal((await task.result).data, 'stop');
+    const parent = new AbortController();
+    const child = spawn(({ signal }) => new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason))), {
+      signal: parent.signal,
+    });
+    parent.abort('parent');
+    assert.equal((await child.result).error, 'parent');
+  });
+
+  it('does not call the function when the parent is already aborted', async () => {
+    let called = false;
+    const task = spawn(() => {
+      called = true;
+    }, { signal: AbortSignal.abort('early') });
+    const result = await task.result;
+    assert.equal(called, false);
+    assert.equal(result.error, 'early');
+  });
+
+  it('validates arguments', () => {
+    assert.throws(() => spawn('x' as never), code('INVALID_ARGUMENT'));
+    assert.throws(() => spawn(() => 1, null as never), code('INVALID_ARGUMENT'));
+    assert.throws(() => spawn(() => 1, { signal: 'x' as never }), code('INVALID_ARGUMENT'));
+  });
+});
+
+describe('createTaskGroup', () => {
+  it('collects values in run order', async () => {
+    const group = createTaskGroup<number>();
+    const gates = [deferred(), deferred()];
+    group.run(async () => {
+      await gates[0]!.promise;
+      return 1;
+    });
+    group.run(async () => {
+      await gates[1]!.promise;
+      return 2;
+    });
+    assert.equal(group.activeCount, 2);
+    gates[1]!.resolve();
+    gates[0]!.resolve();
+    const result = await group.wait();
+    assert.deepEqual(result.ok && result.data, [1, 2]);
+    assert.throws(() => group.run(() => 3), code('INVALID_ARGUMENT'));
+  });
+
+  it('resolves an empty group and lets tasks run more tasks', async () => {
+    assert.deepEqual((await createTaskGroup().wait()).data, []);
+    const group = createTaskGroup<string>();
+    group.run(async () => {
+      group.run(() => 'child');
+      return 'parent';
+    });
+    assert.deepEqual((await group.wait()).data, ['parent', 'child']);
+  });
+
+  it('bounds concurrency and queues the rest', async () => {
+    const group = createTaskGroup<number>({ concurrency: 1 });
+    const gate = deferred();
+    group.run(async () => {
+      await gate.promise;
+      return 1;
+    });
+    group.run(() => 2);
+    assert.equal(group.activeCount, 1);
+    assert.equal(group.pendingCount, 1);
+    gate.resolve();
+    assert.deepEqual((await group.wait()).data, [1, 2]);
+  });
+
+  it('cancels siblings and drops queued tasks on the first failure, then waits for running tasks', async () => {
+    const group = createTaskGroup<number>({ concurrency: 2 });
+    const failure = new Error('boom');
+    const gate = deferred();
+    let siblingSignal: AbortSignal | undefined;
+    let queuedRan = false;
+    group.run(async ({ signal }) => {
+      siblingSignal = signal;
+      await gate.promise;
+      return 1;
+    });
+    group.run(() => {
+      throw failure;
+    });
+    group.run(() => {
+      queuedRan = true;
+      return 3;
+    });
+    await flush();
+    assert.equal(siblingSignal?.aborted, true);
+    assert.equal(group.signal.reason, failure);
+    const waiting = settled(group.wait());
+    await flush();
+    assert.equal(waiting.state, 'pending');
+    group.run(() => assert.fail('a stopping group must not start tasks'));
+    gate.resolve();
+    await flush();
+    assert.equal(waiting.state, 'fulfilled');
+    assert.equal(waiting.value?.error, failure);
+    assert.equal(queuedRan, false);
+  });
+
+  it('stops on cancel and on parent abort', async () => {
+    const group = createTaskGroup();
+    group.cancel('enough');
+    group.cancel('again');
+    group.run(() => assert.fail('must not start'));
+    assert.equal((await group.wait()).error, 'enough');
+    const parent = new AbortController();
+    const child = createTaskGroup({ signal: parent.signal });
+    const gate = deferred();
+    child.run(async ({ signal }) => {
+      await gate.promise;
+      return signal.aborted;
+    });
+    parent.abort('parent');
+    gate.resolve();
+    assert.equal((await child.wait()).error, 'parent');
+    assert.equal((await createTaskGroup({ signal: AbortSignal.abort('early') }).wait()).error, 'early');
+    const defaulted = createTaskGroup();
+    defaulted.cancel();
+    assert.equal(((await defaulted.wait()).error as Error).name, 'AbortError');
+  });
+
+  it('rejects wait for defects and returns the same promise each time', async () => {
+    const group = createTaskGroup();
+    group.run(() => {
+      throw new DefectError('bug');
+    });
+    const first = group.wait();
+    assert.equal(group.wait(), first);
+    await assert.rejects(first, DefectError);
+  });
+
+  it('validates options and tasks', () => {
+    assert.throws(() => createTaskGroup({ concurrency: 0 }), code('INVALID_ARGUMENT'));
+    assert.throws(() => createTaskGroup(null as never), code('INVALID_ARGUMENT'));
+    assert.throws(() => createTaskGroup({ signal: 'x' as never }), code('INVALID_ARGUMENT'));
+    assert.throws(() => createTaskGroup().run('x' as never), code('INVALID_ARGUMENT'));
   });
 });

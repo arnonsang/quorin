@@ -10,6 +10,8 @@ export {
   type ChannelReceiver,
 } from './channel.ts';
 export { select, receive, send, after, whenAborted, type SelectCase, type SelectOptions, type SelectOutcome } from './select.ts';
+export { spawn, type SpawnOptions, type SpawnedTask } from './spawn.ts';
+export { createTaskGroup, type TaskGroup, type TaskGroupOptions } from './task-group.ts';
 export { QueueError, type QueueErrorCode } from './queue-error.ts';
 export { ChannelError, type ChannelErrorCode } from './channel-error.ts';
 export type { TaskContext, RunOptions } from './types.ts';
