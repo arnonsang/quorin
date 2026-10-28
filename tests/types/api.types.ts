@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { defineBoundary, type BoundaryValidationError } from '../../src/boundary/index.ts';
 import { createCache, type Cache, type LoadingCache } from '../../src/cache/index.ts';
 import { deepMerge, getPath, setPath, type Path, type PathValue } from '../../src/object/index.ts';
-import { createChannel, type Channel } from '../../src/async/index.ts';
+import { concurrencyLimit, createChannel, createRateLimiter, mapAsync, ChannelError, QueueError, type Channel } from '../../src/async/index.ts';
 import { onAbort, timeoutSignal } from '../../src/signal/index.ts';
 import { parseRetryAfter, withResilience, type RunFailure } from '../../src/resilience/index.ts';
 import { err, ok, trySafe, trySafeSync, type SafeResult } from '../../src/result/index.ts';
@@ -128,6 +128,11 @@ expectType<Equal<typeof deadline.signal, AbortSignal>>();
 deadline.cancel();
 void deadline;
 void stop();
+const limiter = createRateLimiter({ rate: 100, intervalMs: 60_000, burst: 25 });
+expectType<Equal<typeof limiter.tokens, number>>();
+void limiter.acquire({ weight: 0.5 }).then(() => undefined);
+const got = limiter.tryAcquire();
+expectType<Equal<typeof got, boolean>>();
 
 const map = new ValueMap<{ id: number }, string>();
 // @ts-expect-error keys must be JSON values

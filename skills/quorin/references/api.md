@@ -7,7 +7,7 @@ Compact signatures, options, and defaults for every export. Types are simplified
 - [struct](#struct): Deque, ValueMap, Multimap
 - [object](#object): getPath, setPath, deepMerge, stableStringify, SecurityError
 - [bytes](#bytes): concatBytes, equalsBytes, stringToBytes, bytesToString, toHex, fromHex, toBase64, fromBase64, fastHash
-- [async](#async): concurrencyLimit, mapAsync, createChannel, QueueError, ChannelError
+- [async](#async): concurrencyLimit, mapAsync, createChannel, createRateLimiter, QueueError, ChannelError
 - [signal](#signal): onAbort, timeoutSignal
 - [result](#result): ok, err, trySafe, trySafeSync, isDefect, DefectError
 - [boundary](#boundary): parseEnv, defineBoundary, formatIssues, BoundaryValidationError
@@ -146,6 +146,22 @@ interface Channel<T> {
 }
 ```
 Values are references, `undefined` allowed. FIFO both sides; an arriving take hands the oldest waiting put straight through. Waiting puts beyond `maxPending` reject `QueueError` `QUEUE_FULL`; operations on a closed (and drained) channel reject `ChannelError` `CHANNEL_CLOSED`.
+
+```ts
+function createRateLimiter(options: {
+  rate: number;                 // tokens added per intervalMs
+  intervalMs?: number;          // default 1000
+  burst?: number;               // bucket size, default rate; starts full
+  maxPending?: number;          // waiting acquires, default 1024
+}): RateLimiter;
+
+interface RateLimiter {
+  acquire(options?: { weight?: number; signal?: AbortSignal }): Promise<void>;
+  tryAcquire(weight?: number): boolean;  // false when short of tokens or anyone waits
+  readonly tokens: number;               // refilled lazily on read
+}
+```
+Strict FIFO: a later, lighter waiter never passes the head. Fractional weights allowed; weight above `burst` throws `INVALID_ARGUMENT`; beyond `maxPending` rejects `QueueError` `QUEUE_FULL`. Aborting a waiter removes it and rejects with the reason.
 
 ## signal
 

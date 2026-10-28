@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
-import { concurrencyLimit, createChannel, mapAsync, ChannelError, QueueError } from '../../src/async/index.ts';
+import { afterEach, beforeEach, describe, it } from 'node:test';
+import { concurrencyLimit, createChannel, createRateLimiter, mapAsync, ChannelError, QueueError } from '../../src/async/index.ts';
 import { deferred, flush, settled } from '../helpers/deferred.ts';
+import { installFakeClock, type FakeClock } from '../helpers/fake-clock.ts';
 
 const code = (expected: string) => (error: unknown) => (error as { code?: string }).code === expected;
 
@@ -388,5 +389,127 @@ describe('createChannel', () => {
     await assert.rejects(channel.put(1, { signal: 'x' as never }), code('INVALID_ARGUMENT'));
     await assert.rejects(channel.take({ signal: 'x' as never }), code('INVALID_ARGUMENT'));
     await assert.rejects(channel.put(1, null as never), code('INVALID_ARGUMENT'));
+  });
+});
+
+describe('createRateLimiter', () => {
+  let clock: FakeClock;
+  let restore: () => void;
+
+  beforeEach(() => {
+    ({ clock, restore } = installFakeClock());
+  });
+
+  afterEach(() => restore());
+
+  it('starts full, consumes with tryAcquire, and refills over time', async () => {
+    const limiter = createRateLimiter({ rate: 10, intervalMs: 1000, burst: 5 });
+    assert.equal(limiter.tokens, 5);
+    assert.equal(limiter.tryAcquire(5), true);
+    assert.equal(limiter.tokens, 0);
+    assert.equal(limiter.tryAcquire(), false);
+    await clock.advance(500);
+    assert.equal(limiter.tokens, 5);
+  });
+
+  it('acquires at once when tokens are available', async () => {
+    const limiter = createRateLimiter({ rate: 10, intervalMs: 1000 });
+    await limiter.acquire({ weight: 10 });
+    assert.equal(limiter.tokens, 0);
+  });
+
+  it('makes waiters wait for refill and serves them in FIFO order', async () => {
+    const limiter = createRateLimiter({ rate: 10, intervalMs: 1000, burst: 10 });
+    assert.equal(limiter.tryAcquire(10), true);
+    const order: string[] = [];
+    const first = limiter.acquire({ weight: 1 }).then(() => order.push('first'));
+    const second = limiter.acquire({ weight: 2 }).then(() => order.push('second'));
+    await clock.advance(50);
+    assert.equal(settled(first).state, 'pending');
+    await clock.advance(250);
+    await Promise.all([first, second]);
+    assert.deepEqual(order, ['first', 'second']);
+  });
+
+  it('holds FIFO order even when a later waiter needs fewer tokens', async () => {
+    const limiter = createRateLimiter({ rate: 10, intervalMs: 1000, burst: 10 });
+    assert.equal(limiter.tryAcquire(10), true);
+    const heavy = limiter.acquire({ weight: 5 });
+    const light = limiter.acquire({ weight: 1 });
+    await clock.advance(100);
+    assert.equal(settled(light).state, 'pending');
+    await clock.advance(500);
+    await Promise.all([heavy, light]);
+  });
+
+  it('removes an aborted head waiter and re-arms for the next one', async () => {
+    const limiter = createRateLimiter({ rate: 10, intervalMs: 1000, burst: 10 });
+    assert.equal(limiter.tryAcquire(10), true);
+    const controller = new AbortController();
+    const heavy = limiter.acquire({ weight: 5, signal: controller.signal });
+    const light = limiter.acquire({ weight: 1 });
+    await clock.advance(50);
+    controller.abort('cancel');
+    await assert.rejects(heavy, (reason: unknown) => reason === 'cancel');
+    await clock.advance(50);
+    await light;
+    assert.equal(clock.pendingTimers, 0);
+  });
+
+  it('cancels the timer when the only waiter aborts', async () => {
+    const limiter = createRateLimiter({ rate: 10, intervalMs: 1000, burst: 10 });
+    assert.equal(limiter.tryAcquire(10), true);
+    const controller = new AbortController();
+    const waiter = limiter.acquire({ weight: 5, signal: controller.signal });
+    await clock.advance(10);
+    controller.abort('gone');
+    await assert.rejects(waiter, (reason: unknown) => reason === 'gone');
+    assert.equal(clock.pendingTimers, 0);
+    await clock.advance(1000);
+    assert.equal(limiter.tokens, 10);
+  });
+
+  it('rejects QUEUE_FULL beyond maxPending', async () => {
+    const limiter = createRateLimiter({ rate: 10, intervalMs: 1000, burst: 10, maxPending: 1 });
+    assert.equal(limiter.tryAcquire(10), true);
+    const first = limiter.acquire({ weight: 2 });
+    await assert.rejects(limiter.acquire({ weight: 1 }), (error: unknown) => error instanceof QueueError && error.code === 'QUEUE_FULL');
+    await clock.advance(200);
+    await first;
+  });
+
+  it('blocks tryAcquire while anyone is waiting', async () => {
+    const limiter = createRateLimiter({ rate: 10, intervalMs: 1000, burst: 10 });
+    assert.equal(limiter.tryAcquire(10), true);
+    const waiter = limiter.acquire({ weight: 5 });
+    await clock.advance(200);
+    assert.equal(limiter.tryAcquire(1), false);
+    await clock.advance(300);
+    await waiter;
+  });
+
+  it('supports fractional weights', async () => {
+    const limiter = createRateLimiter({ rate: 1, intervalMs: 1000, burst: 1 });
+    await limiter.acquire({ weight: 0.5 });
+    const rest = limiter.acquire({ weight: 0.5 });
+    await clock.advance(500);
+    await rest;
+  });
+
+  it('rejects immediately on aborted signals', async () => {
+    const limiter = createRateLimiter({ rate: 1, intervalMs: 1000 });
+    await assert.rejects(limiter.acquire({ signal: AbortSignal.abort('early') }), (reason: unknown) => reason === 'early');
+  });
+
+  it('validates options and weights', async () => {
+    assert.throws(() => createRateLimiter({ rate: 0 }), code('INVALID_ARGUMENT'));
+    assert.throws(() => createRateLimiter({ rate: 10, intervalMs: 0 }), code('INVALID_ARGUMENT'));
+    assert.throws(() => createRateLimiter({ rate: 10, burst: -1 }), code('INVALID_ARGUMENT'));
+    const limiter = createRateLimiter({ rate: 10, burst: 5 });
+    await assert.rejects(limiter.acquire({ weight: 6 }), code('INVALID_ARGUMENT'));
+    await assert.rejects(limiter.acquire({ weight: 0 }), code('INVALID_ARGUMENT'));
+    await assert.rejects(limiter.acquire({ weight: Number.NaN }), code('INVALID_ARGUMENT'));
+    assert.throws(() => limiter.tryAcquire(6), code('INVALID_ARGUMENT'));
+    await assert.rejects(limiter.acquire({ weight: 1, signal: 'x' as never }), code('INVALID_ARGUMENT'));
   });
 });

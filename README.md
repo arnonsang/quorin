@@ -134,7 +134,7 @@ Import everything from the root, or import one module through its subpath. Both 
 | `quorin/struct` | Data structures | `Deque`, `ValueMap`, `Multimap` |
 | `quorin/object` | Paths and JSON data | `getPath`, `setPath`, `deepMerge`, `stableStringify`, `SecurityError` |
 | `quorin/bytes` | Byte conversion and hashing | `concatBytes`, `equalsBytes`, `stringToBytes`, `bytesToString`, `toHex`, `fromHex`, `toBase64`, `fromBase64`, `fastHash` |
-| `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `createChannel`, `QueueError`, `ChannelError` |
+| `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `createChannel`, `createRateLimiter`, `QueueError`, `ChannelError` |
 | `quorin/signal` | Cancellation helpers | `onAbort`, `timeoutSignal` |
 | `quorin/result` | Explicit outcomes | `ok`, `err`, `trySafe`, `trySafeSync`, `isDefect`, `DefectError` |
 | `quorin/boundary` | Standard Schema validation | `parseEnv`, `defineBoundary`, `formatIssues`, `BoundaryValidationError` |
@@ -385,6 +385,27 @@ for await (const value of channel) {
 - A waiting put never coexists with a waiting take: an arriving take hands the oldest waiting put straight through without touching the buffer. Order is FIFO on both sides.
 
 Use a channel to bridge a push source (events, SSE frames) to pull-based consumers through a bounded, abort-aware queue. Use `mapAsync` for arrays.
+
+### `createRateLimiter({ rate, intervalMs = 1000, burst = rate, maxPending = 1024 })`
+
+```ts
+import { createRateLimiter } from 'quorin/async';
+
+const limiter = createRateLimiter({ rate: 100, intervalMs: 60_000, burst: 25 });
+
+await limiter.acquire({ weight: 1, signal });  // FIFO, waits for refill
+if (limiter.tryAcquire(1)) {
+  // got tokens at once, and nobody was waiting ahead
+}
+limiter.tokens;  // current tokens, refilled lazily
+```
+
+- Token bucket: `rate` tokens accrue per `intervalMs`, capped at `burst`. The bucket starts full and refills continuously on the injected clock, so tests advance fake time.
+- `acquire({ weight, signal })` consumes `weight` tokens (fractional weights fit token-based limits). Waiters are served in strict FIFO order, even when a later waiter needs fewer tokens. Beyond `maxPending` waiting acquires, `acquire` rejects with `QueueError` code `QUEUE_FULL`.
+- `tryAcquire(weight)` consumes at once and returns false when the bucket lacks tokens or anyone is waiting, so it never jumps the queue.
+- Aborting a waiting `acquire` removes it and rejects with the signal's reason. A `weight` above `burst` throws `INVALID_ARGUMENT` because it could never be satisfied.
+
+Combine with `withResilience`: gate calls with the limiter, and let `retryDelayMs` honor `Retry-After` when the server still answers 429.
 
 ---
 

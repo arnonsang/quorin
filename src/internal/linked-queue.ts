@@ -14,6 +14,10 @@ export class LinkedQueue<T> {
     return this.#size;
   }
 
+  peek(): T | undefined {
+    return this.#head === null ? undefined : this.#head.value;
+  }
+
   push(value: T): QueueNode<T> {
     const node: QueueNode<T> = { value, prev: this.#tail, next: null, linked: true };
     if (this.#tail === null) this.#head = node;
