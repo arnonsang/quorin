@@ -1,13 +1,29 @@
 # Changelog
 
-## 0.1.2-rc.0 (2026-10-28)
+## 0.2.0 (unreleased)
 
-- `quorin/resilience`: `withResilience` accepts an optional `retryDelayMs(failure)` hook whose value replaces the jittered backoff for that retry (for example a server's `Retry-After`). Caller delays may exceed `maxDelayMs`; `totalTimeoutMs` still caps the run; hook errors reject.
-- `quorin/resilience`: new `parseRetryAfter(header)` parses delta seconds or an IMF-fixdate into whole milliseconds. Past dates return `0`, malformed values return `null`, and it never throws.
-- `quorin/async`: new `createChannel({ capacity, maxPending })`, a bounded FIFO async queue with abort-aware `put`/`take`, drain-first idempotent `close`, and async iteration. Default `capacity: 0` gives immediate backpressure; waiting puts beyond `maxPending` reject `QUEUE_FULL`; closed behavior rejects `ChannelError` code `CHANNEL_CLOSED`.
-- `quorin/signal`: new subpath with `onAbort(signal, listener)` (already aborted signals fire the listener synchronously; idempotent unsubscribe) and `timeoutSignal(ms, { signal })` (TimeoutError deadline on the injected clock, optional parent aborts early, `cancel()` clears the timer, pending timers do not keep the process alive).
-- `quorin/async`: new `createRateLimiter({ rate, intervalMs, burst, maxPending })`, a token bucket on the injected clock. Acquires wait in strict FIFO order with fractional weights, `tryAcquire` never jumps the queue, and waiting acquires beyond `maxPending` reject `QUEUE_FULL`.
-- `quorin/async`: new `singleFlight(fn, { key, maxInFlight })`: concurrent same-key calls share one in-flight invocation and one settlement, with nothing cached after settle. Caller aborts disconnect only that caller; the flight signal aborts when the last caller leaves; beyond `maxInFlight` distinct keys calls reject `QUEUE_FULL`.
+### Concurrency (`quorin/async`)
+
+- **Breaking for pre-release users:** `createChannel` (only in the unpublished `0.1.2-rc.0`) is replaced by the `Channel` class: `new Channel<T>(capacity | { capacity, maxPending })` with `send`, `receive`, `trySend`, `tryReceive`, `close`, `values({ signal })`, async iteration, and `sendOnly()`/`receiveOnly()` views. `tryReceive` returns `{ ok: true, value }` or `{ ok: false, closed }`.
+- New `select(cases, { default, signal })` with `receive(channel)`, `send(channel, value)`, `after(ms)`, and `whenAborted(signal)` cases. Exactly one case is performed, losing cases never consume a value, ready cases are chosen at random through the injected clock, and the `[value, index]` result narrows by index.
+- New `spawn(fn, { signal })` returning `{ signal, result, cancel }`, where `result` is a `SafeResult`.
+- New `createTaskGroup({ concurrency, signal })` with `run`, `wait`, and `cancel`: the first failure cancels the group and `wait` waits for every started task.
+- New `Mutex` (`lock`, `tryLock`), `withLock`, `RWMutex` (`lockRead`, `lockWrite`, no writer starvation), and `KeyedMutex` (`with(key, fn)`, idle keys forgotten).
+- New `tick(intervalMs, { signal })` interval loops on the injected clock that skip missed ticks.
+- New `createRateLimiter({ rate, intervalMs, burst, maxPending })`, a token bucket on the injected clock with strict FIFO acquires, `tryAcquire`, `clear`, and `pendingCount`.
+- New `singleFlight(fn, { key, maxInFlight })` for coalescing concurrent identical calls without caching. Abandoned flights are detached, so later calls start fresh.
+
+### Other modules
+
+- `quorin/signal`: new subpath with `onAbort(signal, listener)` and `timeoutSignal(ms, { signal })`.
+- `quorin/resilience`: `withResilience` accepts `retryDelayMs(failure)` to override the backoff for a retry, and new `parseRetryAfter(header)` parses `Retry-After` values.
+
+### Docs
+
+- The README is now a short overview; each module has its own page under `docs/`.
+
+## 0.1.1 (2026-10-26)
+
 - Add `typesVersions` so subpath imports such as `quorin/cache` type check under legacy `moduleResolution: "node"` (TypeScript 6 and earlier).
 - Test declarations on TypeScript 5.8 as well as 7.0, including CommonJS consumers under `NodeNext`.
 - Document TypeScript settings per project type, and align the documented `require` support with the Node 22.19.0 engines floor.
