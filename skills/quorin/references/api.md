@@ -7,7 +7,7 @@ Compact signatures, options, and defaults for every export. Types are simplified
 - [struct](#struct): Deque, ValueMap, Multimap
 - [object](#object): getPath, setPath, deepMerge, stableStringify, SecurityError
 - [bytes](#bytes): concatBytes, equalsBytes, stringToBytes, bytesToString, toHex, fromHex, toBase64, fromBase64, fastHash
-- [async](#async): concurrencyLimit, mapAsync, createChannel, createRateLimiter, QueueError, ChannelError
+- [async](#async): concurrencyLimit, mapAsync, createChannel, createRateLimiter, singleFlight, QueueError, ChannelError
 - [signal](#signal): onAbort, timeoutSignal
 - [result](#result): ok, err, trySafe, trySafeSync, isDefect, DefectError
 - [boundary](#boundary): parseEnv, defineBoundary, formatIssues, BoundaryValidationError
@@ -162,6 +162,13 @@ interface RateLimiter {
 }
 ```
 Strict FIFO: a later, lighter waiter never passes the head. Fractional weights allowed; weight above `burst` throws `INVALID_ARGUMENT`; beyond `maxPending` rejects `QueueError` `QUEUE_FULL`. Aborting a waiter removes it and rejects with the reason.
+
+function singleFlight<Args extends readonly unknown[], T>(
+  fn: (args: Args, context: { signal: AbortSignal }) => T | PromiseLike<T>,
+  options?: { key?: (args: Args) => JsonValue; maxInFlight?: number },  // maxInFlight default 1024
+): (args: Args, options?: RunOptions) => Promise<T>;
+```
+Same-key concurrent calls share one flight and one settlement (value by reference); nothing is cached after settle. Default key: `stableStringify(args)` (JSON values only, else `UNSUPPORTED_VALUE`). Caller abort disconnects only that caller; the flight signal aborts when the last caller leaves. Beyond `maxInFlight` distinct keys, calls reject `QueueError` `QUEUE_FULL`.
 
 ## signal
 

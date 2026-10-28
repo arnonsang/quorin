@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { defineBoundary, type BoundaryValidationError } from '../../src/boundary/index.ts';
 import { createCache, type Cache, type LoadingCache } from '../../src/cache/index.ts';
 import { deepMerge, getPath, setPath, type Path, type PathValue } from '../../src/object/index.ts';
-import { concurrencyLimit, createChannel, createRateLimiter, mapAsync, ChannelError, QueueError, type Channel } from '../../src/async/index.ts';
+import { concurrencyLimit, createChannel, createRateLimiter, mapAsync, singleFlight, ChannelError, QueueError, type Channel } from '../../src/async/index.ts';
 import { onAbort, timeoutSignal } from '../../src/signal/index.ts';
 import { parseRetryAfter, withResilience, type RunFailure } from '../../src/resilience/index.ts';
 import { err, ok, trySafe, trySafeSync, type SafeResult } from '../../src/result/index.ts';
@@ -121,6 +121,13 @@ async function drain(channel: Channel<{ id: string } | undefined>): Promise<({ i
   return seen;
 }
 void drain(genericChannel);
+const loadProfile = singleFlight(async (args: readonly [id: string], { signal }: { signal: AbortSignal }) =>
+  fetch(args[0], { signal }).then((response) => response.json() as Promise<unknown>),
+);
+void loadProfile(['u1']).then((value) => expectType<Equal<typeof value, unknown>>());
+void loadProfile(['u1'], { signal: AbortSignal.abort('x') }).then(() => undefined, () => undefined);
+// @ts-expect-error args must match the wrapped function
+void loadProfile([42]);
 const stop = onAbort(undefined, () => undefined);
 expectType<Equal<typeof stop, () => void>>();
 const deadline = timeoutSignal(100);

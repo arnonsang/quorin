@@ -134,7 +134,7 @@ Import everything from the root, or import one module through its subpath. Both 
 | `quorin/struct` | Data structures | `Deque`, `ValueMap`, `Multimap` |
 | `quorin/object` | Paths and JSON data | `getPath`, `setPath`, `deepMerge`, `stableStringify`, `SecurityError` |
 | `quorin/bytes` | Byte conversion and hashing | `concatBytes`, `equalsBytes`, `stringToBytes`, `bytesToString`, `toHex`, `fromHex`, `toBase64`, `fromBase64`, `fastHash` |
-| `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `createChannel`, `createRateLimiter`, `QueueError`, `ChannelError` |
+| `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `createChannel`, `createRateLimiter`, `singleFlight`, `QueueError`, `ChannelError` |
 | `quorin/signal` | Cancellation helpers | `onAbort`, `timeoutSignal` |
 | `quorin/result` | Explicit outcomes | `ok`, `err`, `trySafe`, `trySafeSync`, `isDefect`, `DefectError` |
 | `quorin/boundary` | Standard Schema validation | `parseEnv`, `defineBoundary`, `formatIssues`, `BoundaryValidationError` |
@@ -406,6 +406,26 @@ limiter.tokens;  // current tokens, refilled lazily
 - Aborting a waiting `acquire` removes it and rejects with the signal's reason. A `weight` above `burst` throws `INVALID_ARGUMENT` because it could never be satisfied.
 
 Combine with `withResilience`: gate calls with the limiter, and let `retryDelayMs` honor `Retry-After` when the server still answers 429.
+
+### `singleFlight(fn, { key, maxInFlight = 1024 })`
+
+```ts
+import { singleFlight } from 'quorin/async';
+
+const loadProfile = singleFlight(
+  async (args: readonly [id: string], { signal }) => fetchProfile(args[0], signal),
+);
+
+const [a, b] = await Promise.all([loadProfile(['u1']), loadProfile(['u1'])]);
+// one fetchProfile call serves both, a === b
+```
+
+- Concurrent calls with the same key share one in-flight invocation; every caller receives the same settled value (by reference) or the same rejection. Once the flight settles, nothing is cached: the next call starts a new one.
+- The default key is `stableStringify(args)`, so args must be JSON values; a custom `key(args)` decides identity itself. Non-JSON keys reject with `UNSUPPORTED_VALUE`.
+- The wrapped function receives `{ signal }`. One caller aborting only disconnects that caller; the flight's signal aborts once every caller has canceled, so work nobody waits for can stop.
+- At most `maxInFlight` distinct keys run at once; beyond that calls reject with `QueueError` code `QUEUE_FULL`.
+
+Use `createCache` when results should outlive the call; use `singleFlight` to collapse a burst into one call and nothing more.
 
 ---
 

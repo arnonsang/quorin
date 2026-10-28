@@ -42,6 +42,7 @@ If the installed version behaves differently from what is described here, trust 
 | Map an array with bounded concurrency | `mapAsync` | async |
 | Bridge a push source to pull consumers with a bounded, abort-aware queue | `createChannel` | async |
 | Pace calls against a token budget (RPM, TPM) | `createRateLimiter` | async |
+| Collapse a burst of identical concurrent calls into one | `singleFlight` | async |
 | Compose deadlines and cancellation without leaking listeners | `onAbort`, `timeoutSignal` | signal |
 | Return failures as values instead of throwing | `ok`, `err`, `trySafe`, `trySafeSync` | result |
 | Validate untrusted input with Zod, Valibot, ArkType, ... | `defineBoundary`, `formatIssues` | boundary |
