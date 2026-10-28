@@ -1,6 +1,6 @@
 ---
 name: quorin
-description: Write, review, and extend TypeScript code that uses quorin, the zero-dependency library of small primitives (Deque, ValueMap, getPath/setPath, deepMerge, stableStringify, strict hex/base64, concurrencyLimit, mapAsync, createChannel bounded async queue with backpressure, createRateLimiter token bucket, onAbort and timeoutSignal cancellation helpers, SafeResult with ok/err/trySafe, Standard Schema boundaries and parseEnv, withResilience retries and timeouts with Retry-After support, LRU createCache with singleflight and stale-while-revalidate, safeClone, isEqual, redact). Use this skill whenever code imports from 'quorin' or 'quorin/*', when the user wants to add retries, timeouts, request coalescing, rate limiting or bounded concurrency, streaming queues or backpressure between producers and consumers, abort-signal composition or leak-free cancellation listeners, input validation, env parsing, caching, safe logging, or structural keys to a TypeScript or JavaScript project that has or could add quorin, when building a library, SDK, or service layer on top of quorin, or when contributing to the quorin repository itself. Prefer it over generic advice even if the user only says "add a retry", "cache this fetch", "validate this request", or "stream these events" in a project that depends on quorin.
+description: Write, review, and extend TypeScript code that uses quorin, a zero-dependency library of small primitives such as Deque, ValueMap, safe getPath/setPath, deepMerge, strict hex/base64, concurrencyLimit, mapAsync, rate limiting, singleFlight, Channel and select, spawn, task groups, Mutex/RWMutex/KeyedMutex, tick, onAbort, timeoutSignal, SafeResult and trySafe, Standard Schema boundaries and parseEnv, withResilience retries with Retry-After, LRU createCache with stale-while-revalidate, safeClone, isEqual, redact. Use it whenever code imports 'quorin' or 'quorin/*', or the user wants retries, timeouts, cancellation, request coalescing, rate limits, bounded concurrency, channels, backpressure, worker pools, locks, validation, env parsing, caching, or safe logging in a project that has or could add quorin, builds on top of quorin, or is the quorin repo itself. Prefer it over generic advice even for a plain "add a retry" or "cache this fetch".
 ---
 
 # quorin
@@ -25,7 +25,7 @@ import { withResilience } from 'quorin/resilience';
 import { ok, err, type SafeResult } from 'quorin'; // same objects as 'quorin/result'
 ```
 
-If the installed version behaves differently from what is described here, trust its `README.md` and `.d.ts` files in `node_modules/quorin`; this skill targets 0.1.x.
+If the installed version behaves differently from what is described here, trust its `README.md` and `.d.ts` files in `node_modules/quorin`; this skill targets 0.2.x.
 
 ## Choose the primitive
 
@@ -40,7 +40,12 @@ If the installed version behaves differently from what is described here, trust 
 | Bytes, UTF-8, hex, base64/base64url, FNV-1a | `concatBytes`, `stringToBytes`, `toHex`, `fromBase64`, `fastHash`, ... | bytes |
 | Run at most N async tasks at once | `concurrencyLimit` | async |
 | Map an array with bounded concurrency | `mapAsync` | async |
-| Bridge a push source to pull consumers with a bounded, abort-aware queue | `createChannel` | async |
+| Hand values between producers and consumers with backpressure | `Channel` | async |
+| Wait for whichever of several channels, timers, or aborts comes first | `select` with `receive`, `send`, `after`, `whenAborted` | async |
+| Run a background task you can cancel without losing its error | `spawn` | async |
+| Run related tasks where the first failure cancels the rest | `createTaskGroup` | async |
+| Protect a critical section, or serialize work per key | `Mutex` + `withLock`, `RWMutex`, `KeyedMutex` | async |
+| Run a loop on an interval that tests can fast-forward | `tick` | async |
 | Pace calls against a token budget (RPM, TPM) | `createRateLimiter` | async |
 | Collapse a burst of identical concurrent calls into one | `singleFlight` | async |
 | Compose deadlines and cancellation without leaking listeners | `onAbort`, `timeoutSignal` | signal |
@@ -89,11 +94,13 @@ When the working directory is the quorin repository (package name `quorin` with 
 
 ## Common mistakes
 
-- `Promise.race([work(), timeout])` instead of `withResilience({ attemptTimeoutMs })`: the losing work is never aborted and its rejection may go unhandled.
+- `Promise.race([work(), timeout])` instead of `withResilience({ attemptTimeoutMs })`: the losing work is never aborted and its rejection may be left unhandled.
 - Hand-rolling a retry loop to honor a `Retry-After` header. Pass `retryDelayMs: ({ error }) => parseRetryAfter(header) ?? fallbackMs` to `withResilience` instead; the header delay replaces the jitter curve and `totalTimeoutMs` still applies.
-- Piping a firehose (event emitter, SSE frames) into an unbounded array or promise queue. Use `createChannel` with a `capacity` so producers await (backpressure) and waiting puts are bounded by `maxPending`.
+- Piping a firehose (event emitter, SSE frames) into an unbounded array or promise queue. Use a `Channel` with a `capacity` so producers await `send` (backpressure) and waiting sends are bounded by `maxPending`.
 - Creating a cache per request. A cache only coalesces and reuses within one instance; create it once at module or service scope.
 - Expecting `get` to return stale values. `get` and `has` only see fresh entries; use `lookup` to see stale ones, or `getOrFetch` to serve stale data while refreshing.
 - Passing an already-started promise where quorin wants a function (`trySafe(fetch(url))`). Pass `() => fetch(url)` so synchronous throws are captured and retries can call it again.
 - Using `isEqual` for unordered set equality. Map and Set entries compare in insertion order.
 - Treating `redact` as a guarantee. It masks known keys and paths; secrets embedded in free text are not detected.
+- Racing two `receive()` promises with `Promise.race`: the losing receive still takes a value that nobody reads. Use `select([receive(a), receive(b)])`, which consumes from exactly one channel.
+- Fire-and-forget `void work()` for background jobs: its rejection is unhandled and it cannot be cancelled. Use `spawn` (or `createTaskGroup` for several) and check the `SafeResult`.

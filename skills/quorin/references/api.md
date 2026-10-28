@@ -7,7 +7,7 @@ Compact signatures, options, and defaults for every export. Types are simplified
 - [struct](#struct): Deque, ValueMap, Multimap
 - [object](#object): getPath, setPath, deepMerge, stableStringify, SecurityError
 - [bytes](#bytes): concatBytes, equalsBytes, stringToBytes, bytesToString, toHex, fromHex, toBase64, fromBase64, fastHash
-- [async](#async): concurrencyLimit, mapAsync, createChannel, createRateLimiter, singleFlight, QueueError, ChannelError
+- [async](#async): concurrencyLimit, mapAsync, createRateLimiter, singleFlight, Channel, select, spawn, createTaskGroup, Mutex, withLock, RWMutex, KeyedMutex, tick, QueueError, ChannelError
 - [signal](#signal): onAbort, timeoutSignal
 - [result](#result): ok, err, trySafe, trySafeSync, isDefect, DefectError
 - [boundary](#boundary): parseEnv, defineBoundary, formatIssues, BoundaryValidationError
@@ -131,23 +131,6 @@ function mapAsync<T, R>(
 Input order preserved, input snapshotted, sparse arrays rejected. First failure or abort stops new starts, aborts running mappers, rejects with that error or reason.
 
 ```ts
-function createChannel<T>(options?: { capacity?: number; maxPending?: number }): Channel<T>;
-// capacity default 0 (rendezvous: every put waits for a take), maxPending default 1024 waiting puts
-
-interface Channel<T> {
-  put(value: T, options?: { signal?: AbortSignal }): Promise<void>;  // rejects: CHANNEL_CLOSED, QUEUE_FULL, abort reason
-  take(options?: { signal?: AbortSignal }): Promise<T>;              // rejects: CHANNEL_CLOSED after drain, abort reason
-  close(): void;                                                     // idempotent; waiting puts/takes reject, buffer drains
-  readonly size: number;            // buffered values
-  readonly pendingPuts: number;
-  readonly pendingTakes: number;
-  readonly closed: boolean;
-  [Symbol.asyncIterator](): AsyncIterator<T>;  // yields until closed and drained
-}
-```
-Values are references, `undefined` allowed. FIFO both sides; an arriving take hands the oldest waiting put straight through. Waiting puts beyond `maxPending` reject `QueueError` `QUEUE_FULL`; operations on a closed (and drained) channel reject `ChannelError` `CHANNEL_CLOSED`.
-
-```ts
 function createRateLimiter(options: {
   rate: number;                 // tokens added per intervalMs
   intervalMs?: number;          // default 1000
@@ -165,12 +148,59 @@ interface RateLimiter {
 ```
 Strict FIFO: a later, lighter waiter never passes the head. Fractional weights allowed; weight above `burst` throws `INVALID_ARGUMENT`; beyond `maxPending` rejects `QueueError` `QUEUE_FULL`. Aborting a waiter removes it and rejects with the reason.
 
+```ts
 function singleFlight<Args extends readonly unknown[], T>(
   fn: (args: Args, context: { signal: AbortSignal }) => T | PromiseLike<T>,
   options?: { key?: (args: Args) => JsonValue; maxInFlight?: number },  // maxInFlight default 1024
 ): (args: Args, options?: RunOptions) => Promise<T>;
 ```
 Same-key concurrent calls share one flight and one settlement (value by reference); nothing is cached after settle. Default key: `stableStringify(args)` (JSON values only, else `UNSUPPORTED_VALUE`). Caller abort disconnects only that caller; when the last caller leaves, the flight signal aborts and the next call starts a fresh flight. Errors thrown by a custom `key` reject the call unchanged. `maxInFlight` counts running invocations, including abandoned ones that have not settled; beyond it calls reject `QueueError` `QUEUE_FULL`.
+
+### Concurrency (also `quorin/async`)
+
+```ts
+class Channel<T> {
+  constructor(options?: number | { capacity?: number; maxPending?: number }); // capacity default 0, maxPending 1024
+  send(value: T, options?: { signal?: AbortSignal }): Promise<void>;   // rejects CHANNEL_CLOSED, QUEUE_FULL, abort reason
+  receive(options?: { signal?: AbortSignal }): Promise<T>;           // rejects CHANNEL_CLOSED once closed and drained
+  trySend(value: T): boolean;                                        // false when it would wait; throws CHANNEL_CLOSED if closed
+  tryReceive(): { ok: true; value: T } | { ok: false; closed: boolean };
+  close(): void;                                                     // idempotent; waiting sends and receives reject; buffer drains
+  values(options?: { signal?: AbortSignal }): AsyncGenerator<T>;     // cancellable iteration
+  [Symbol.asyncIterator](): AsyncGenerator<T>;                       // ends when closed and drained
+  sendOnly(): ChannelSender<T>;                                      // send, trySend, close
+  receiveOnly(): ChannelReceiver<T>;                                 // receive, tryReceive, values; no close
+  readonly capacity: number; readonly size: number; readonly closed: boolean;
+  readonly pendingSends: number; readonly pendingReceives: number;
+}
+
+function select<C extends readonly SelectCase[]>(cases: C, options?: { signal?: AbortSignal }): Promise<[value, index]>;
+function select<C, D>(cases: C, options: { default: D; signal?: AbortSignal }): Promise<[value, index] | [D, -1]>;
+function receive<T>(channel: ChannelReceiver<T>): SelectCase<{ ok: true; value: T } | { ok: false; closed: true }>;
+function send<T>(channel: ChannelSender<T>, value: T): SelectCase<undefined>;  // rejects CHANNEL_CLOSED when selected on a closed channel
+function after(ms: number): SelectCase<undefined>;                            // injected clock
+function whenAborted(signal: AbortSignal): SelectCase<unknown>;               // produces the abort reason
+
+function spawn<T>(fn: (context: { signal: AbortSignal }) => T | PromiseLike<T>, options?: CaptureOptions & { signal?: AbortSignal; mapError?: (raw: unknown) => E }): {
+  readonly signal: AbortSignal;
+  readonly result: Promise<SafeResult<T, E>>;  // failures are values; defects reject
+  cancel(reason?: unknown): void;
+};
+
+function createTaskGroup<T>(options?: { concurrency?: number; signal?: AbortSignal }): {
+  run(task: (context: { signal: AbortSignal }) => T | PromiseLike<T>): void;  // ignored once stopping; throws after wait settled
+  wait(): Promise<SafeResult<T[], unknown>>;  // ok(values in run order) or err(first failure); defects reject
+  cancel(reason?: unknown): void;
+  readonly signal: AbortSignal; readonly activeCount: number; readonly pendingCount: number;
+};
+
+class Mutex { lock(options?: { signal?: AbortSignal }): Promise<() => void>; tryLock(): (() => void) | null; readonly locked: boolean; readonly pendingCount: number }
+function withLock<T>(mutex: Mutex, fn: () => T | PromiseLike<T>, options?: { signal?: AbortSignal }): Promise<T>;  // always releases
+class RWMutex { lockRead(options?): Promise<() => void>; lockWrite(options?): Promise<() => void>; readonly readers: number; readonly writing: boolean; readonly pendingCount: number }
+class KeyedMutex { with<T>(key: string, fn: () => T | PromiseLike<T>, options?: { signal?: AbortSignal }): Promise<T>; readonly size: number }
+function tick(intervalMs: number, options?: { signal?: AbortSignal }): AsyncGenerator<number>;  // 1, 2, 3...; skips missed ticks
+```
+`select` checks readiness and commits one case synchronously, picks randomly among ready cases (injected random), and parked cases claim before consuming, so a losing case never takes a value; timers and listeners of losing cases are released. Narrow the result by `index`. Release functions are idempotent. Lock waiters are FIFO and leave the queue on abort. `RWMutex` admits leading readers together and a waiting writer holds back later readers. `KeyedMutex` forgets idle keys. Everything is cooperative within one isolate: no threads, and a synchronous loop still blocks.
 
 ## signal
 

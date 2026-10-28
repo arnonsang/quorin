@@ -14,6 +14,7 @@ Patterns for application code. Every `ts` block in this file is extracted and ty
 8. [Layered configuration](#8-layered-configuration)
 9. [Work queues](#9-work-queues)
 10. [Testing code that uses quorin](#10-testing-code-that-uses-quorin)
+11. [Channels, select, and task groups](#11-channels-select-and-task-groups)
 
 ## 1. Validated environment config
 
@@ -366,3 +367,66 @@ test('caller abort reaches the task', async () => {
   assert.equal(taskSignal?.aborted, true);
 });
 ```
+
+## 11. Channels, select, and task groups
+
+A worker pool fed by a bounded channel: producers wait when workers fall behind, the first failing job cancels the rest, and every worker has finished when `wait` resolves.
+
+```ts
+import { Channel, createTaskGroup } from 'quorin/async';
+
+interface Job {
+  readonly id: string;
+}
+
+declare function handle(job: Job, signal: AbortSignal): Promise<void>;
+
+export async function runJobs(jobs: readonly Job[], signal: AbortSignal): Promise<number> {
+  const queue = new Channel<Job>(32);
+  const workers = createTaskGroup<number>({ signal });
+  for (let worker = 0; worker < 4; worker++) {
+    workers.run(async ({ signal: workerSignal }) => {
+      let handled = 0;
+      for await (const job of queue.values({ signal: workerSignal })) {
+        await handle(job, workerSignal);
+        handled++;
+      }
+      return handled;
+    });
+  }
+  try {
+    for (const job of jobs) await queue.send(job, { signal: workers.signal });
+  } catch {
+    // the group stopped; wait() reports why
+  } finally {
+    queue.close();
+  }
+  const result = await workers.wait();
+  if (!result.ok) throw result.error;
+  return result.data.reduce((total, count) => total + count, 0);
+}
+```
+
+Waiting on several sources at once with `select`. Exactly one case wins, the others never consume a value, and `index` narrows `value`:
+
+```ts
+import { after, receive, select, whenAborted, type Channel } from 'quorin/async';
+
+interface Message {
+  readonly text: string;
+}
+
+export async function nextMessage(
+  messages: Channel<Message>,
+  control: Channel<'pause' | 'stop'>,
+  signal: AbortSignal,
+): Promise<Message | 'idle' | 'stop'> {
+  const [value, index] = await select([receive(messages), receive(control), after(30_000), whenAborted(signal)]);
+  if (index === 0) return value.ok ? value.value : 'stop';
+  if (index === 1) return value.ok && value.value === 'pause' ? 'idle' : 'stop';
+  if (index === 2) return 'idle';
+  return 'stop';
+}
+```
+
+Use `spawn` for one background task you may need to cancel, `KeyedMutex` to serialize writes per user or file, and `tick` instead of `setInterval` so tests can advance fake time.

@@ -35,7 +35,7 @@ All of these must pass before a change is done. CI runs them on Node 22.19.0, 22
 
 ## Conventions
 
-- **Errors**: throw through the helpers in `src/internal/errors.ts` (`invalidArgument`, `unsupportedValue`, `traversalLimit`, ...) or a module error class with a `code`. Add a new code to `QuorinErrorCode` and to the README error table. Messages never include user values.
+- **Errors**: throw through the helpers in `src/internal/errors.ts` (`invalidArgument`, `unsupportedValue`, `traversalLimit`, ...) or a module error class with a `code`. Add a new code to `QuorinErrorCode` and to the table in `docs/errors-and-cancellation.md`. Messages never include user values.
 - **Validation**: use `src/internal/validate.ts` (`assertInteger`, `assertDuration`, `assertFunction`, `assertOptionalSignal`, `assertOptionsObject`). Async entry points reject instead of throwing.
 - **Cancellation**: subscribe with `onAbort` from `src/internal/abort.ts`, which returns an idempotent unsubscribe. Check `signal.aborted` before invoking user code, remove listeners on every terminal path, and attach handlers to every user promise so late rejections are observed.
 - **Time**: get the clock with `getClock()` and schedule with `schedule(clock, ms, callback)` from `src/internal/clock.ts`. Tests install `FakeClock` from `tests/helpers/fake-clock.ts` and advance it. Never call `setTimeout` or `Date.now()` directly in library code.
@@ -50,9 +50,9 @@ All of these must pass before a change is done. CI runs them on Node 22.19.0, 22
 2. Export it (and its option types) from `src/<module>/index.ts`. The root picks it up automatically, and the package test checks that root and subpath exports match.
 3. Add runtime tests covering valid input, every rejection path, and ownership, plus type tests for inference and expected errors.
 4. Keep coverage above the thresholds.
-5. Update the README section for the module, `skills/quorin/references/api.md`, and `CHANGELOG.md`.
+5. Update the module's page in `docs/`, `skills/quorin/references/api.md`, and `CHANGELOG.md`. The README stays compact and only links to the docs.
 
-Adding a whole new subpath also needs an `exports` entry in `package.json`, the module name in the `subpaths` list in `tests/package/package.test.mjs`, a line in `src/index.ts`, and a row in the README and skill module tables.
+Adding a whole new subpath also needs an `exports` entry in `package.json`, the module name in the `subpaths` list in `tests/package/package.test.mjs`, a line in `src/index.ts`, a page in `docs/` linked from `docs/README.md`, and a row in the README and skill module tables.
 
 ## Commits
 
