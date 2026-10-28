@@ -513,6 +513,43 @@ describe('createRateLimiter', () => {
     assert.throws(() => limiter.tryAcquire(6), code('INVALID_ARGUMENT'));
     await assert.rejects(limiter.acquire({ weight: 1, signal: 'x' as never }), code('INVALID_ARGUMENT'));
   });
+
+  it('serves the next waiter at once when an aborted head leaves enough tokens', async () => {
+    const limiter = createRateLimiter({ rate: 10, intervalMs: 1000, burst: 10 });
+    assert.equal(limiter.tryAcquire(8), true);
+    const controller = new AbortController();
+    const heavy = limiter.acquire({ weight: 5, signal: controller.signal });
+    const light = settled(limiter.acquire({ weight: 2 }));
+    assert.equal(limiter.pendingCount, 2);
+    controller.abort('skip');
+    await assert.rejects(heavy, (reason: unknown) => reason === 'skip');
+    await flush();
+    assert.equal(light.state, 'fulfilled');
+    assert.equal(limiter.pendingCount, 0);
+  });
+
+  it('clears waiters with a default or custom reason and keeps tokens', async () => {
+    const limiter = createRateLimiter({ rate: 1, intervalMs: 1000, burst: 2 });
+    assert.equal(limiter.tryAcquire(2), true);
+    const first = limiter.acquire({ weight: 1 });
+    limiter.clear();
+    await assert.rejects(first, code('QUEUE_CLEARED'));
+    const second = limiter.acquire({ weight: 2 });
+    limiter.clear('stop');
+    await assert.rejects(second, (reason: unknown) => reason === 'stop');
+    await clock.advance(1000);
+    assert.equal(limiter.tokens, 1);
+  });
+
+  it('serves fractional refills without stalling on rounding', async () => {
+    const limiter = createRateLimiter({ rate: 3, intervalMs: 1000, burst: 3 });
+    assert.equal(limiter.tryAcquire(3), true);
+    const done: number[] = [];
+    const waits = [1, 2, 3].map((index) => limiter.acquire({ weight: 1 }).then(() => done.push(index)));
+    await clock.advance(1000);
+    await Promise.all(waits);
+    assert.deepEqual(done, [1, 2, 3]);
+  });
 });
 
 describe('singleFlight', () => {

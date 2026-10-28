@@ -158,6 +158,8 @@ function createRateLimiter(options: {
 interface RateLimiter {
   acquire(options?: { weight?: number; signal?: AbortSignal }): Promise<void>;
   tryAcquire(weight?: number): boolean;  // false when short of tokens or anyone waits
+  clear(reason?: unknown): void;          // rejects waiters (default QueueError QUEUE_CLEARED), keeps tokens
+  readonly pendingCount: number;
   readonly tokens: number;               // refilled lazily on read
 }
 ```

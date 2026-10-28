@@ -23,7 +23,10 @@ export interface RateLimiter {
   acquire(options?: AcquireOptions): Promise<void>;
   /** Consumes tokens at once when the bucket has them and no one is waiting. */
   tryAcquire(weight?: number): boolean;
+  /** Rejects every waiting acquire with `reason`, or `QueueError` code `QUEUE_CLEARED`. Tokens are kept. */
+  clear(reason?: unknown): void;
   readonly tokens: number;
+  readonly pendingCount: number;
 }
 
 interface Waiting {
@@ -33,6 +36,8 @@ interface Waiting {
   node: QueueNode<Waiting> | null;
   unsubscribe: Unsubscribe;
 }
+
+const EPSILON = 1e-9;
 
 function assertWeight(name: string, weight: unknown, burst: number): void {
   if (typeof weight !== 'number' || !Number.isFinite(weight)) {
@@ -87,11 +92,11 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
 
   const pump = (): void => {
     refill();
-    while (waiters.size > 0 && tokens >= (waiters.peek() as Waiting).weight) {
+    while (waiters.size > 0 && tokens + EPSILON >= waiters.peek()!.weight) {
       const waiter = waiters.shift()!;
-      if (waiter.node !== null) waiters.remove(waiter.node);
+      waiter.node = null;
       waiter.unsubscribe();
-      tokens -= waiter.weight;
+      tokens = Math.max(0, tokens - waiter.weight);
       waiter.resolve();
     }
     if (waiters.size > 0) arm();
@@ -110,8 +115,8 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
       const signal = acquireOptions.signal;
       if (signal?.aborted === true) return Promise.reject(signal.reason);
       refill();
-      if (waiters.size === 0 && tokens >= weight) {
-        tokens -= weight;
+      if (waiters.size === 0 && tokens + EPSILON >= weight) {
+        tokens = Math.max(0, tokens - weight);
         return Promise.resolve();
       }
       if (waiters.size >= maxPending) {
@@ -123,13 +128,12 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
         waiter.unsubscribe = onAbort(signal, (reason) => {
           if (waiter.node !== null) waiters.remove(waiter.node);
           waiter.node = null;
-          waiter.unsubscribe();
           reject(reason);
           if (waiters.size === 0) {
             cancelTimer();
             cancelTimer = noop;
           } else {
-            arm();
+            pump();
           }
         });
         if (waiters.size === 1) arm();
@@ -139,9 +143,24 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
     tryAcquire(weight = 1): boolean {
       assertWeight('weight', weight, burst);
       refill();
-      if (waiters.size > 0 || tokens < weight) return false;
-      tokens -= weight;
+      if (waiters.size > 0 || tokens + EPSILON < weight) return false;
+      tokens = Math.max(0, tokens - weight);
       return true;
+    },
+
+    clear(reason?: unknown): void {
+      const error = reason === undefined ? new QueueError('QUEUE_CLEARED', 'The rate limiter queue was cleared') : reason;
+      cancelTimer();
+      cancelTimer = noop;
+      for (const waiter of waiters.drain()) {
+        waiter.node = null;
+        waiter.unsubscribe();
+        waiter.reject(error);
+      }
+    },
+
+    get pendingCount(): number {
+      return waiters.size;
     },
 
     get tokens(): number {
