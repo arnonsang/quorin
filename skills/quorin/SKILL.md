@@ -43,7 +43,7 @@ If the installed version behaves differently from what is described here, trust 
 | Return failures as values instead of throwing | `ok`, `err`, `trySafe`, `trySafeSync` | result |
 | Validate untrusted input with Zod, Valibot, ArkType, ... | `defineBoundary`, `formatIssues` | boundary |
 | Validate environment variables | `parseEnv(schema, process.env)` | boundary |
-| Retries, backoff, attempt and total timeouts | `withResilience` | resilience |
+| Retries, backoff, attempt and total timeouts, honor `Retry-After` | `withResilience`, `parseRetryAfter` | resilience |
 | LRU cache, TTL, stale-while-revalidate, dedupe loads | `createCache` | cache |
 | Deep copy, deep equality, log-safe projection | `safeClone`, `isEqual`, `redact` | state |
 
@@ -86,6 +86,7 @@ When the working directory is the quorin repository (package name `quorin` with 
 ## Common mistakes
 
 - `Promise.race([work(), timeout])` instead of `withResilience({ attemptTimeoutMs })`: the losing work is never aborted and its rejection may go unhandled.
+- Hand-rolling a retry loop to honor a `Retry-After` header. Pass `retryDelayMs: ({ error }) => parseRetryAfter(header) ?? fallbackMs` to `withResilience` instead; the header delay replaces the jitter curve and `totalTimeoutMs` still applies.
 - Creating a cache per request. A cache only coalesces and reuses within one instance; create it once at module or service scope.
 - Expecting `get` to return stale values. `get` and `has` only see fresh entries; use `lookup` to see stale ones, or `getOrFetch` to serve stale data while refreshing.
 - Passing an already-started promise where quorin wants a function (`trySafe(fetch(url))`). Pass `() => fetch(url)` so synchronous throws are captured and retries can call it again.

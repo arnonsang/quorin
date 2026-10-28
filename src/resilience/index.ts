@@ -5,3 +5,4 @@ export {
   type ResilienceOptions,
   type RunFailure,
 } from './with-resilience.ts';
+export { parseRetryAfter } from './retry-after.ts';

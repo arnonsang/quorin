@@ -27,6 +27,7 @@ export interface ResilienceOptions<E = unknown> extends CaptureOptions {
   readonly retries?: number;
   readonly retrySafe?: boolean;
   readonly shouldRetry?: (error: E, attempt: number) => boolean;
+  readonly retryDelayMs?: (failure: { readonly error: E; readonly attempt: number }) => number | Promise<number>;
   readonly attemptTimeoutMs?: number;
   readonly totalTimeoutMs?: number;
   readonly baseDelayMs?: number;
@@ -60,6 +61,7 @@ function validate(options: ResilienceOptions<unknown>): void {
     if (options.retrySafe !== true) throw invalidArgument('retries require retrySafe: true');
     assertFunction('shouldRetry', options.shouldRetry);
   }
+  if (options.retryDelayMs !== undefined) assertFunction('retryDelayMs', options.retryDelayMs);
   if (options.attemptTimeoutMs !== undefined) assertDuration('attemptTimeoutMs', options.attemptTimeoutMs);
   if (options.totalTimeoutMs !== undefined) assertDuration('totalTimeoutMs', options.totalTimeoutMs);
   const base = options.baseDelayMs ?? 100;
@@ -147,16 +149,39 @@ export async function withResilience<T>(
         finish(failure({ kind: 'task', error, attempt }));
         return;
       }
-      const cap = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
-      const delay = clock.random() * cap;
-      if (totalTimeoutMs !== undefined && clock.now() - startedAt + delay >= totalTimeoutMs) {
-        finish(failure({ kind: 'task', error, attempt }));
+      const scheduleRetry = (delay: number): void => {
+        if (terminal) return;
+        if (totalTimeoutMs !== undefined && clock.now() - startedAt + delay >= totalTimeoutMs) {
+          finish(failure({ kind: 'task', error, attempt }));
+          return;
+        }
+        cancelBackoff = schedule(clock, delay, () => {
+          cancelBackoff = noop;
+          run();
+        });
+      };
+      if (options.retryDelayMs === undefined) {
+        const cap = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
+        scheduleRetry(clock.random() * cap);
         return;
       }
-      cancelBackoff = schedule(clock, delay, () => {
-        cancelBackoff = noop;
-        run();
-      });
+      let hookValue: number | Promise<number>;
+      try {
+        hookValue = options.retryDelayMs({ error, attempt });
+      } catch (hookError) {
+        fail(hookError);
+        return;
+      }
+      Promise.resolve(hookValue).then(
+        (delay) => {
+          if (typeof delay !== 'number' || !Number.isFinite(delay) || delay < 0) {
+            fail(invalidArgument('retryDelayMs must resolve to a nonnegative finite number'));
+            return;
+          }
+          scheduleRetry(delay);
+        },
+        fail,
+      );
     };
 
     const run = (): void => {

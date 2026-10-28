@@ -11,9 +11,14 @@ export class FakeClock implements Clock {
   #nextId = 1;
   #timers: Timer[] = [];
   randomValue = 0.5;
+  epochBase = 0;
 
   now(): number {
     return this.#now;
+  }
+
+  epochNow(): number {
+    return this.epochBase + this.#now;
   }
 
   random(): number {

@@ -52,14 +52,16 @@ Issue messages come from the schema, not from the values, so printing them does 
 Classify retryable failures yourself. A resolved 503 is a successful `fetch` promise, so turn it into an error; consume or cancel bodies you discard so connections are released. Read the body inside the task so the timeout covers it.
 
 ```ts
-import { withResilience, isUserAbort, type RunFailure } from 'quorin/resilience';
+import { withResilience, parseRetryAfter, isUserAbort, type RunFailure } from 'quorin/resilience';
 import type { SafeResult } from 'quorin/result';
 
 export class HttpError extends Error {
   readonly status: number;
-  constructor(status: number) {
+  readonly retryAfter: string | null;
+  constructor(status: number, retryAfter: string | null) {
     super(`HTTP ${status}`);
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -76,7 +78,7 @@ export async function getJson<T>(url: string, signal?: AbortSignal): Promise<Saf
       const response = await fetch(url, { signal: attemptSignal, headers: { accept: 'application/json' } });
       if (!response.ok) {
         await response.body?.cancel();
-        throw new HttpError(response.status);
+        throw new HttpError(response.status, response.headers.get('retry-after'));
       }
       return (await response.json()) as T;
     },
@@ -85,7 +87,7 @@ export async function getJson<T>(url: string, signal?: AbortSignal): Promise<Saf
       retries: 2,
       retrySafe: true,
       shouldRetry: isRetryable,
-      attemptTimeoutMs: 3_000,
+      retryDelayMs: ({ error }) => (error instanceof HttpError ? parseRetryAfter(error.retryAfter) : null) ?? 800,
       totalTimeoutMs: 10_000,
     },
   );
@@ -112,7 +114,7 @@ export async function loadProfile(id: string, signal?: AbortSignal): Promise<unk
 }
 ```
 
-Only `GET`-like or idempotency-keyed requests should set `retrySafe: true`. With `exactOptionalPropertyTypes`, spread optional signals as shown instead of passing `signal: undefined`.
+Only `GET`-like or idempotency-keyed requests should set `retrySafe: true`. With `exactOptionalPropertyTypes`, spread optional signals as shown instead of passing `signal: undefined`. When the server sends `Retry-After`, honor it with `retryDelayMs` and `parseRetryAfter`: the header delay replaces the jittered curve for that retry and may exceed `maxDelayMs`, while `totalTimeoutMs` still caps the whole run.
 
 ## 3. Cache with request coalescing and stale-while-revalidate
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `quorin/resilience`: `withResilience` accepts an optional `retryDelayMs(failure)` hook whose value replaces the jittered backoff for that retry (for example a server's `Retry-After`). Caller delays may exceed `maxDelayMs`; `totalTimeoutMs` still caps the run; hook errors reject.
+- `quorin/resilience`: new `parseRetryAfter(header)` parses delta seconds or an IMF-fixdate into whole milliseconds. Past dates return `0`, malformed values return `null`, and it never throws.
 - Add `typesVersions` so subpath imports such as `quorin/cache` type check under legacy `moduleResolution: "node"` (TypeScript 6 and earlier).
 - Test declarations on TypeScript 5.8 as well as 7.0, including CommonJS consumers under `NodeNext`.
 - Document TypeScript settings per project type, and align the documented `require` support with the Node 22.19.0 engines floor.

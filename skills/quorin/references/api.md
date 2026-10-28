@@ -10,7 +10,7 @@ Compact signatures, options, and defaults for every export. Types are simplified
 - [async](#async): concurrencyLimit, mapAsync, QueueError
 - [result](#result): ok, err, trySafe, trySafeSync, isDefect, DefectError
 - [boundary](#boundary): parseEnv, defineBoundary, formatIssues, BoundaryValidationError
-- [resilience](#resilience): withResilience, isUserAbort
+- [resilience](#resilience): withResilience, parseRetryAfter, isUserAbort
 - [cache](#cache): createCache, CacheError
 - [state](#state): safeClone, isEqual, redact, CLONE_SYMBOL, REDACTED, TRUNCATED, StateError
 - [Error codes](#error-codes)
@@ -185,6 +185,8 @@ interface ResilienceOptions<E = unknown> extends CaptureOptions {
   retries?: number;                 // default 0, additional attempts
   retrySafe?: boolean;              // required true when retries > 0
   shouldRetry?: (error: E, attempt: number) => boolean;   // required when retries > 0, must return boolean
+  retryDelayMs?: (failure: { error: E; attempt: number }) => number | Promise<number>;
+                                    // optional; replaces the jittered curve, may exceed maxDelayMs, totalTimeoutMs still caps
   attemptTimeoutMs?: number;        // 0 expires before the task runs
   totalTimeoutMs?: number;          // covers attempts and backoff
   baseDelayMs?: number;             // default 100
@@ -198,6 +200,10 @@ type RunFailure<E = unknown> =
   | { kind: 'aborted'; reason: unknown; attempt: number };
 
 function isUserAbort(value: unknown): boolean;  // true for aborted failures (or results holding them) made by withResilience
+
+function parseRetryAfter(header: string | null | undefined): number | null;
+// Retry-After as whole milliseconds: delta seconds or IMF-fixdate (weekday not validated).
+// Past dates return 0; malformed or beyond MAX_SAFE_INTEGER ms return null. Never throws.
 ```
 Invalid options, defects, and hook errors reject. Timeouts are terminal. A retry whose delay would reach `totalTimeoutMs` is skipped and the last task failure returned.
 

@@ -1,5 +1,6 @@
 export interface Clock {
   now(): number;
+  epochNow(): number;
   setTimeout(callback: () => void, ms: number): unknown;
   clearTimeout(handle: unknown): void;
   random(): number;
@@ -9,6 +10,7 @@ const MAX_TIMER_DELAY = 2_147_483_647;
 
 export const systemClock: Clock = {
   now: () => performance.now(),
+  epochNow: () => Date.now(),
   setTimeout: (callback, ms) => globalThis.setTimeout(callback, ms),
   clearTimeout: (handle) => globalThis.clearTimeout(handle as ReturnType<typeof globalThis.setTimeout>),
   random: () => Math.random(),

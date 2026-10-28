@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { defineBoundary, type BoundaryValidationError } from '../../src/boundary/index.ts';
 import { createCache, type Cache, type LoadingCache } from '../../src/cache/index.ts';
 import { deepMerge, getPath, setPath, type Path, type PathValue } from '../../src/object/index.ts';
-import { withResilience, type RunFailure } from '../../src/resilience/index.ts';
+import { parseRetryAfter, withResilience, type RunFailure } from '../../src/resilience/index.ts';
 import { err, ok, trySafe, trySafeSync, type SafeResult } from '../../src/result/index.ts';
 import { ValueMap } from '../../src/struct/index.ts';
 import { expectType, type Equal } from './expect.ts';
@@ -83,6 +83,30 @@ void withResilience(async () => 1).then((outcome) => {
 void withResilience(async () => 1, { mapError: () => 404 as const }).then((outcome) => {
   if (!outcome.ok && outcome.error.kind === 'task') expectType<Equal<typeof outcome.error.error, 404>>();
 });
+void withResilience(async () => 1, {
+  retries: 1,
+  retrySafe: true,
+  shouldRetry: () => true,
+  retryDelayMs: ({ error, attempt }) => {
+    expectType<Equal<typeof error, unknown>>();
+    expectType<Equal<typeof attempt, number>>();
+    return 10;
+  },
+});
+void withResilience(async () => 1, {
+  mapError: () => 404 as const,
+  retries: 1,
+  retrySafe: true,
+  shouldRetry: (error: 404) => error === 404,
+  retryDelayMs: ({ error }) => {
+    expectType<Equal<typeof error, 404>>();
+    return Promise.resolve(5);
+  },
+});
+// @ts-expect-error the hook must return a number or a promise of a number
+void withResilience(async () => 1, { retryDelayMs: () => 'soon' });
+const parsed = parseRetryAfter('120');
+expectType<Equal<typeof parsed, number | null>>();
 
 const map = new ValueMap<{ id: number }, string>();
 // @ts-expect-error keys must be JSON values
