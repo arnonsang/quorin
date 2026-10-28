@@ -9,6 +9,7 @@ export {
   type ChannelSender,
   type ChannelReceiver,
 } from './channel.ts';
+export { select, receive, send, after, whenAborted, type SelectCase, type SelectOptions, type SelectOutcome } from './select.ts';
 export { QueueError, type QueueErrorCode } from './queue-error.ts';
 export { ChannelError, type ChannelErrorCode } from './channel-error.ts';
 export type { TaskContext, RunOptions } from './types.ts';

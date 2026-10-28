@@ -3,10 +3,15 @@ import { defineBoundary, type BoundaryValidationError } from '../../src/boundary
 import { createCache, type Cache, type LoadingCache } from '../../src/cache/index.ts';
 import { deepMerge, getPath, setPath, type Path, type PathValue } from '../../src/object/index.ts';
 import {
+  after,
   Channel,
   createRateLimiter,
+  receive,
+  select,
+  send,
   singleFlight,
   type ChannelReceiver,
+  type ChannelReceiveResult,
   type ChannelSender,
 } from '../../src/async/index.ts';
 import { onAbort, timeoutSignal } from '../../src/signal/index.ts';
@@ -135,6 +140,18 @@ async function drain(channel: ChannelReceiver<{ id: string } | undefined>): Prom
   return seen;
 }
 void drain(genericChannel);
+
+async function selectNarrowing(jobs: Channel<string>, quit: Channel<number>): Promise<void> {
+  const [value, index] = await select([receive(jobs), receive(quit), after(1000)]);
+  if (index === 0) expectType<Equal<typeof value, ChannelReceiveResult<string>>>();
+  if (index === 1) expectType<Equal<typeof value, ChannelReceiveResult<number>>>();
+  if (index === 2) expectType<Equal<typeof value, undefined>>();
+  const [maybe, which] = await select([send(jobs, 'job')], { default: null });
+  if (which === -1) expectType<Equal<typeof maybe, null>>();
+  // @ts-expect-error send values must match the channel type
+  send(jobs, 1);
+}
+void selectNarrowing;
 
 const loadProfile = singleFlight(async (args: readonly [id: string], { signal }: { signal: AbortSignal }) =>
   fetch(args[0], { signal }).then((response) => response.json() as Promise<unknown>),
