@@ -15,6 +15,11 @@ beforeEach(() => {
 afterEach(() => restore());
 
 describe('onAbort', () => {
+  it('validates its arguments', () => {
+    assert.throws(() => onAbort({} as AbortSignal, () => {}), { code: 'INVALID_ARGUMENT' });
+    assert.throws(() => onAbort(new AbortController().signal, 'x' as never), { code: 'INVALID_ARGUMENT' });
+  });
+
   it('delivers the reason on abort and detaches the listener', async () => {
     const controller = new AbortController();
     const reasons: unknown[] = [];

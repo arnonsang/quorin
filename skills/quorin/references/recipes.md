@@ -87,7 +87,7 @@ export async function getJson<T>(url: string, signal?: AbortSignal): Promise<Saf
       retries: 2,
       retrySafe: true,
       shouldRetry: isRetryable,
-      retryDelayMs: ({ error }) => (error instanceof HttpError ? parseRetryAfter(error.retryAfter) : null) ?? 800,
+      retryDelayMs: ({ error }) => Math.min((error instanceof HttpError ? parseRetryAfter(error.retryAfter) : null) ?? 800, 5_000),
       totalTimeoutMs: 10_000,
     },
   );
@@ -114,7 +114,7 @@ export async function loadProfile(id: string, signal?: AbortSignal): Promise<unk
 }
 ```
 
-Only `GET`-like or idempotency-keyed requests should set `retrySafe: true`. With `exactOptionalPropertyTypes`, spread optional signals as shown instead of passing `signal: undefined`. When the server sends `Retry-After`, honor it with `retryDelayMs` and `parseRetryAfter`: the header delay replaces the jittered curve for that retry and may exceed `maxDelayMs`, while `totalTimeoutMs` still caps the whole run.
+Only `GET`-like or idempotency-keyed requests should set `retrySafe: true`. With `exactOptionalPropertyTypes`, spread optional signals as shown instead of passing `signal: undefined`. When the server sends `Retry-After`, honor it with `retryDelayMs` and `parseRetryAfter`: the header delay replaces the jittered curve for that retry and may exceed `maxDelayMs`, while `totalTimeoutMs` still caps the whole run. Cap the header value as shown, so a server asking for an hour cannot park the request for an hour when no total deadline is set.
 
 ## 3. Cache with request coalescing and stale-while-revalidate
 

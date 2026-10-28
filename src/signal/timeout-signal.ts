@@ -20,8 +20,9 @@ export interface TimeoutSignal {
 /**
  * Creates an AbortSignal that aborts with a `TimeoutError` after `ms` on the injected clock,
  * so tests can advance fake time. Unlike `AbortSignal.timeout`, an optional parent `signal`
- * aborts the deadline early with the parent's reason and clears the timer, and a pending
- * timer does not keep the process alive.
+ * aborts the deadline early with the parent's reason and clears the timer, and `cancel` clears
+ * the timer without aborting. Like `AbortSignal.timeout`, a pending timer does not keep the
+ * process alive.
  */
 export function timeoutSignal(ms: number, options: TimeoutSignalOptions = {}): TimeoutSignal {
   assertDuration('ms', ms);
