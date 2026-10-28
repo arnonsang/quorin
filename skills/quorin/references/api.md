@@ -170,7 +170,7 @@ function singleFlight<Args extends readonly unknown[], T>(
   options?: { key?: (args: Args) => JsonValue; maxInFlight?: number },  // maxInFlight default 1024
 ): (args: Args, options?: RunOptions) => Promise<T>;
 ```
-Same-key concurrent calls share one flight and one settlement (value by reference); nothing is cached after settle. Default key: `stableStringify(args)` (JSON values only, else `UNSUPPORTED_VALUE`). Caller abort disconnects only that caller; the flight signal aborts when the last caller leaves. Beyond `maxInFlight` distinct keys, calls reject `QueueError` `QUEUE_FULL`.
+Same-key concurrent calls share one flight and one settlement (value by reference); nothing is cached after settle. Default key: `stableStringify(args)` (JSON values only, else `UNSUPPORTED_VALUE`). Caller abort disconnects only that caller; when the last caller leaves, the flight signal aborts and the next call starts a fresh flight. Errors thrown by a custom `key` reject the call unchanged. `maxInFlight` counts running invocations, including abandoned ones that have not settled; beyond it calls reject `QueueError` `QUEUE_FULL`.
 
 ## signal
 

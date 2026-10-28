@@ -648,6 +648,64 @@ describe('singleFlight', () => {
     gate.resolve('ignored');
   });
 
+  it('shares rejections whose reason is undefined', async () => {
+    const fetcher = singleFlight(async () => {
+      throw undefined;
+    });
+    const [a, b] = [fetcher([]), fetcher([])];
+    await assert.rejects(a, (reason: unknown) => reason === undefined);
+    await assert.rejects(b, (reason: unknown) => reason === undefined);
+  });
+
+  it('starts a fresh flight after every caller abandoned the previous one', async () => {
+    const gates = [deferred<string>(), deferred<string>()];
+    const signals: AbortSignal[] = [];
+    let calls = 0;
+    const fetcher = singleFlight(async (_args: readonly [], { signal }) => {
+      signals.push(signal);
+      return gates[calls++]!.promise;
+    });
+    const controller = new AbortController();
+    const abandoned = fetcher([], { signal: controller.signal });
+    controller.abort('leave');
+    await assert.rejects(abandoned, (reason: unknown) => reason === 'leave');
+    assert.equal(signals[0]?.aborted, true);
+    const fresh = fetcher([]);
+    assert.equal(calls, 2);
+    gates[0]!.resolve('stale');
+    await flush();
+    const joined = fetcher([]);
+    assert.equal(calls, 2);
+    gates[1]!.resolve('fresh');
+    assert.deepEqual(await Promise.all([fresh, joined]), ['fresh', 'fresh']);
+  });
+
+  it('counts abandoned flights that are still running toward maxInFlight', async () => {
+    const gates = [deferred<number>(), deferred<number>()];
+    let calls = 0;
+    const fetcher = singleFlight(async () => gates[calls++]!.promise, { maxInFlight: 1 });
+    const controller = new AbortController();
+    const abandoned = fetcher([], { signal: controller.signal });
+    controller.abort('leave');
+    await assert.rejects(abandoned);
+    await assert.rejects(fetcher([]), code('QUEUE_FULL'));
+    gates[0]!.resolve(0);
+    await flush();
+    const next = fetcher([]);
+    gates[1]!.resolve(1);
+    assert.equal(await next, 1);
+  });
+
+  it('rejects with the key function error unchanged', async () => {
+    const failure = new Error('bad key');
+    const keyed = singleFlight(async () => 1, {
+      key: () => {
+        throw failure;
+      },
+    });
+    await assert.rejects(keyed([]), (reason: unknown) => reason === failure);
+  });
+
   it('rejects non-JSON args and keys with UNSUPPORTED_VALUE', async () => {
     const fetcher = singleFlight(async () => 1);
     await assert.rejects(fetcher([new Date()]), code('UNSUPPORTED_VALUE'));
