@@ -22,6 +22,8 @@ import { withResilience } from 'quorin/resilience';
 
 > **Status:** `0.2.0` preview. The API may still change before `1.0`.
 
+See each primitive in motion, next to the quick version it replaces, on the [visualizer site](https://arnonsang.github.io/quorin/).
+
 ## Why I built it
 
 Quorin is the toolkit I kept rewriting. Whatever the project, an API, a background worker, or an app talking to flaky services, I end up building the same pieces before I can get to the actual product: a timeout that really cancels, a retry that only retries what is safe, a cache that collapses a burst of identical requests, a queue that pushes back instead of growing forever, validation at the edges, and a way to log objects without leaking tokens.
