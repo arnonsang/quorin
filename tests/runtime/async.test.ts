@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { concurrencyLimit, createChannel, mapAsync, ChannelError, QueueError } from '../../src/async/index.ts';
+import { concurrencyLimit, createChannel, mapAsync, singleFlight, ChannelError, QueueError } from '../../src/async/index.ts';
+import type { JsonValue } from '../../src/internal/json.ts';
 import { deferred, flush, settled } from '../helpers/deferred.ts';
 
 const code = (expected: string) => (error: unknown) => (error as { code?: string }).code === expected;
@@ -388,5 +389,130 @@ describe('createChannel', () => {
     await assert.rejects(channel.put(1, { signal: 'x' as never }), code('INVALID_ARGUMENT'));
     await assert.rejects(channel.take({ signal: 'x' as never }), code('INVALID_ARGUMENT'));
     await assert.rejects(channel.put(1, null as never), code('INVALID_ARGUMENT'));
+  });
+});
+
+describe('singleFlight', () => {
+  it('shares one in-flight invocation across concurrent same-args calls', async () => {
+    let calls = 0;
+    const gate = deferred<string>();
+    const fetcher = singleFlight(async (args: readonly [string], { signal }) => {
+      calls++;
+      assert.equal(args[0], 'u1');
+      assert.equal(signal.aborted, false);
+      return gate.promise;
+    });
+    const first = fetcher(['u1']);
+    const second = fetcher(['u1']);
+    const third = fetcher(['u1']);
+    assert.equal(calls, 1);
+    gate.resolve('shared');
+    assert.deepEqual(await Promise.all([first, second, third]), ['shared', 'shared', 'shared']);
+  });
+
+  it('passes the settled value by reference to every caller', async () => {
+    const value = { id: 7 };
+    const fetcher = singleFlight(async () => value);
+    const results = await Promise.all([fetcher([]), fetcher([])]);
+    assert.equal(results[0], value);
+    assert.equal(results[1], value);
+  });
+
+  it('shares a rejection across all callers', async () => {
+    let calls = 0;
+    const fetcher = singleFlight(async () => {
+      calls++;
+      throw new Error('boom');
+    });
+    const first = fetcher([]);
+    const second = fetcher([]);
+    await assert.rejects(first, /boom/);
+    await assert.rejects(second, /boom/);
+    assert.equal(calls, 1);
+  });
+
+  it('runs distinct keys separately and starts a new flight after settling', async () => {
+    let calls = 0;
+    const fetcher = singleFlight(async (args: readonly [string]) => {
+      calls++;
+      return args[0];
+    });
+    assert.deepEqual(await Promise.all([fetcher(['a']), fetcher(['b'])]), ['a', 'b']);
+    assert.equal(calls, 2);
+    await fetcher(['a']);
+    assert.equal(calls, 3);
+  });
+
+  it('uses a custom key function for identity', async () => {
+    let calls = 0;
+    const fetcher = singleFlight(
+      async (args: readonly [number]) => {
+        calls++;
+        return args[0];
+      },
+      { key: () => 'constant' },
+    );
+    await Promise.all([fetcher([1]), fetcher([2])]);
+    assert.equal(calls, 1);
+  });
+
+  it('only disconnects the caller that aborts and keeps the flight running', async () => {
+    const gate = deferred<string>();
+    const fetcher = singleFlight(async () => gate.promise);
+    const controller = new AbortController();
+    const leaver = fetcher([], { signal: controller.signal });
+    const stayer = fetcher([]);
+    controller.abort('leave');
+    await assert.rejects(leaver, (reason: unknown) => reason === 'leave');
+    gate.resolve('kept');
+    assert.equal(await stayer, 'kept');
+  });
+
+  it('aborts the flight signal once every caller has canceled', async () => {
+    const gate = deferred<string>();
+    let flightSignal: AbortSignal | undefined;
+    const fetcher = singleFlight(async (_args: readonly [], { signal }) => {
+      flightSignal = signal;
+      return gate.promise;
+    });
+    const first = new AbortController();
+    const second = new AbortController();
+    const leaving = fetcher([], { signal: first.signal });
+    const staying = fetcher([], { signal: second.signal });
+    first.abort('a');
+    await assert.rejects(leaving, (reason: unknown) => reason === 'a');
+    assert.equal(flightSignal?.aborted, false);
+    second.abort('b');
+    await assert.rejects(staying, (reason: unknown) => reason === 'b');
+    assert.equal(flightSignal?.aborted, true);
+    gate.resolve('ignored');
+  });
+
+  it('rejects non-JSON args and keys with UNSUPPORTED_VALUE', async () => {
+    const fetcher = singleFlight(async () => 1);
+    await assert.rejects(fetcher([new Date()]), code('UNSUPPORTED_VALUE'));
+    const keyed = singleFlight(async () => 1, { key: () => new Date() as unknown as JsonValue });
+    await assert.rejects(keyed([]), code('UNSUPPORTED_VALUE'));
+  });
+
+  it('rejects QUEUE_FULL beyond maxInFlight distinct keys and frees the slot after settling', async () => {
+    const gates = [deferred<number>(), deferred<number>()];
+    const fetcher = singleFlight(async (args: readonly [number]) => gates[args[0]]!.promise, { maxInFlight: 1 });
+    const first = fetcher([0]);
+    await assert.rejects(fetcher([1]), (error: unknown) => error instanceof QueueError && error.code === 'QUEUE_FULL');
+    gates[0]!.resolve(5);
+    assert.equal(await first, 5);
+    const next = fetcher([1]);
+    gates[1]!.resolve(6);
+    assert.equal(await next, 6);
+  });
+
+  it('validates the wrapper and call options', async () => {
+    assert.throws(() => singleFlight('x' as never), code('INVALID_ARGUMENT'));
+    assert.throws(() => singleFlight(async () => 1, { maxInFlight: 0 }), code('INVALID_ARGUMENT'));
+    const fetcher = singleFlight(async () => 1);
+    await assert.rejects(fetcher([], null as never), code('INVALID_ARGUMENT'));
+    await assert.rejects(fetcher([], { signal: 'x' as never }), code('INVALID_ARGUMENT'));
+    await assert.rejects(fetcher([], { signal: AbortSignal.abort('early') }), (reason: unknown) => reason === 'early');
   });
 });

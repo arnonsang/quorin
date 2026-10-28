@@ -134,7 +134,7 @@ Import everything from the root, or import one module through its subpath. Both 
 | `quorin/struct` | Data structures | `Deque`, `ValueMap`, `Multimap` |
 | `quorin/object` | Paths and JSON data | `getPath`, `setPath`, `deepMerge`, `stableStringify`, `SecurityError` |
 | `quorin/bytes` | Byte conversion and hashing | `concatBytes`, `equalsBytes`, `stringToBytes`, `bytesToString`, `toHex`, `fromHex`, `toBase64`, `fromBase64`, `fastHash` |
-| `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `createChannel`, `QueueError`, `ChannelError` |
+| `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `createChannel`, `singleFlight`, `QueueError`, `ChannelError` |
 | `quorin/signal` | Cancellation helpers | `onAbort`, `timeoutSignal` |
 | `quorin/result` | Explicit outcomes | `ok`, `err`, `trySafe`, `trySafeSync`, `isDefect`, `DefectError` |
 | `quorin/boundary` | Standard Schema validation | `parseEnv`, `defineBoundary`, `formatIssues`, `BoundaryValidationError` |
@@ -385,6 +385,26 @@ for await (const value of channel) {
 - A waiting put never coexists with a waiting take: an arriving take hands the oldest waiting put straight through without touching the buffer. Order is FIFO on both sides.
 
 Use a channel to bridge a push source (events, SSE frames) to pull-based consumers through a bounded, abort-aware queue. Use `mapAsync` for arrays.
+
+### `singleFlight(fn, { key, maxInFlight = 1024 })`
+
+```ts
+import { singleFlight } from 'quorin/async';
+
+const loadProfile = singleFlight(
+  async (args: readonly [id: string], { signal }) => fetchProfile(args[0], signal),
+);
+
+const [a, b] = await Promise.all([loadProfile(['u1']), loadProfile(['u1'])]);
+// one fetchProfile call serves both, a === b
+```
+
+- Concurrent calls with the same key share one in-flight invocation; every caller receives the same settled value (by reference) or the same rejection. Once the flight settles, nothing is cached: the next call starts a new one.
+- The default key is `stableStringify(args)`, so args must be JSON values; a custom `key(args)` decides identity itself. Non-JSON keys reject with `UNSUPPORTED_VALUE`.
+- The wrapped function receives `{ signal }`. One caller aborting only disconnects that caller; the flight's signal aborts once every caller has canceled, so work nobody waits for can stop.
+- At most `maxInFlight` distinct keys run at once; beyond that calls reject with `QueueError` code `QUEUE_FULL`.
+
+Use `createCache` when results should outlive the call; use `singleFlight` to collapse a burst into one call and nothing more.
 
 ---
 
