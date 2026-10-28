@@ -82,6 +82,10 @@
       "types": "./dist/async/index.d.ts",
       "default": "./dist/async/index.js"
     },
+    "./signal": {
+      "types": "./dist/signal/index.d.ts",
+      "default": "./dist/signal/index.js"
+    },
     "./result": {
       "types": "./dist/result/index.d.ts",
       "default": "./dist/result/index.js"

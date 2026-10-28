@@ -8,6 +8,7 @@ Compact signatures, options, and defaults for every export. Types are simplified
 - [object](#object): getPath, setPath, deepMerge, stableStringify, SecurityError
 - [bytes](#bytes): concatBytes, equalsBytes, stringToBytes, bytesToString, toHex, fromHex, toBase64, fromBase64, fastHash
 - [async](#async): concurrencyLimit, mapAsync, createChannel, QueueError, ChannelError
+- [signal](#signal): onAbort, timeoutSignal
 - [result](#result): ok, err, trySafe, trySafeSync, isDefect, DefectError
 - [boundary](#boundary): parseEnv, defineBoundary, formatIssues, BoundaryValidationError
 - [resilience](#resilience): withResilience, parseRetryAfter, isUserAbort
@@ -145,6 +146,20 @@ interface Channel<T> {
 }
 ```
 Values are references, `undefined` allowed. FIFO both sides; an arriving take hands the oldest waiting put straight through. Waiting puts beyond `maxPending` reject `QueueError` `QUEUE_FULL`; operations on a closed (and drained) channel reject `ChannelError` `CHANNEL_CLOSED`.
+
+## signal
+
+```ts
+function onAbort(signal: AbortSignal | undefined, listener: (reason: unknown) => void): Unsubscribe;
+// already aborted signal: listener runs synchronously; unsubscribe idempotent; listener self-detaches
+
+function timeoutSignal(ms: number, options?: { signal?: AbortSignal }): TimeoutSignal;
+interface TimeoutSignal {
+  readonly signal: AbortSignal;  // aborts with TimeoutError after ms on the injected clock
+  cancel(): void;                // clears the timer without aborting; idempotent
+}
+```
+Parent signal aborts early with the parent's reason and clears the timer. `ms` is at most 2147483647; invalid values throw `INVALID_ARGUMENT`. A pending timer does not keep the process alive.
 
 ## result
 

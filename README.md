@@ -54,6 +54,7 @@ Quorin (KWOR-in) is a made-up name drawn from *quorum*, the smallest group that 
 - [quorin/object](#quorinobject)
 - [quorin/bytes](#quorinbytes)
 - [quorin/async](#quorinasync)
+- [quorin/signal](#quorinsignal)
 - [quorin/result](#quorinresult)
 - [quorin/boundary](#quorinboundary)
 - [quorin/resilience](#quorinresilience)
@@ -134,6 +135,7 @@ Import everything from the root, or import one module through its subpath. Both 
 | `quorin/object` | Paths and JSON data | `getPath`, `setPath`, `deepMerge`, `stableStringify`, `SecurityError` |
 | `quorin/bytes` | Byte conversion and hashing | `concatBytes`, `equalsBytes`, `stringToBytes`, `bytesToString`, `toHex`, `fromHex`, `toBase64`, `fromBase64`, `fastHash` |
 | `quorin/async` | Bounded async execution | `concurrencyLimit`, `mapAsync`, `createChannel`, `QueueError`, `ChannelError` |
+| `quorin/signal` | Cancellation helpers | `onAbort`, `timeoutSignal` |
 | `quorin/result` | Explicit outcomes | `ok`, `err`, `trySafe`, `trySafeSync`, `isDefect`, `DefectError` |
 | `quorin/boundary` | Standard Schema validation | `parseEnv`, `defineBoundary`, `formatIssues`, `BoundaryValidationError` |
 | `quorin/resilience` | Retries and deadlines | `withResilience`, `parseRetryAfter`, `isUserAbort` |
@@ -382,7 +384,44 @@ for await (const value of channel) {
 - Values are passed by reference; `undefined` is a valid value. `size`, `pendingPuts`, `pendingTakes`, and `closed` are live counters.
 - A waiting put never coexists with a waiting take: an arriving take hands the oldest waiting put straight through without touching the buffer. Order is FIFO on both sides.
 
-Use a channel to bridge a push source (events, SSE frames) to pull-based consumers with a bounded, abort-aware queue in between; `mapAsync` is for arrays, not streams.
+Use a channel to bridge a push source (events, SSE frames) to pull-based consumers through a bounded, abort-aware queue. Use `mapAsync` for arrays.
+
+---
+
+## quorin/signal
+
+### `onAbort(signal, listener)`
+
+```ts
+import { onAbort } from 'quorin/signal';
+
+const unsubscribe = onAbort(request.signal, (reason) => cleanup());
+try {
+  await work();
+} finally {
+  unsubscribe();  // idempotent; cannot leak the listener
+}
+```
+
+Subscribes to a signal's abort with the reason. An already aborted signal invokes the listener synchronously. The returned unsubscribe is idempotent and removes the listener; the listener also detaches itself after firing once.
+
+### `timeoutSignal(ms, { signal })`
+
+```ts
+import { timeoutSignal } from 'quorin/signal';
+
+const deadline = timeoutSignal(5_000, { signal: request.signal });
+try {
+  await fetch(url, { signal: deadline.signal });
+} finally {
+  deadline.cancel();  // clears the timer without aborting
+}
+```
+
+- Aborts with a `TimeoutError` after `ms` on quorin's injected clock, so tests advance fake time instead of waiting (unlike `AbortSignal.timeout`, which only reads the real clock).
+- An optional parent `signal` aborts the deadline early with the parent's reason and clears the timer, replacing hand-rolled `AbortSignal.any` composition.
+- `cancel()` clears the timer without aborting and is idempotent. A pending timer does not keep the process alive.
+- `ms` must be a nonnegative number of milliseconds, at most `2147483647`; anything else throws `INVALID_ARGUMENT`.
 
 ---
 
