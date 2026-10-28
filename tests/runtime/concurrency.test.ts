@@ -5,12 +5,16 @@ import {
   Channel,
   ChannelError,
   createTaskGroup,
+  KeyedMutex,
+  Mutex,
   QueueError,
   receive,
+  RWMutex,
   select,
   send,
   spawn,
   whenAborted,
+  withLock,
 } from '../../src/async/index.ts';
 import { DefectError } from '../../src/result/index.ts';
 import { deferred, flush, settled } from '../helpers/deferred.ts';
@@ -551,5 +555,162 @@ describe('createTaskGroup', () => {
     assert.throws(() => createTaskGroup(null as never), code('INVALID_ARGUMENT'));
     assert.throws(() => createTaskGroup({ signal: 'x' as never }), code('INVALID_ARGUMENT'));
     assert.throws(() => createTaskGroup().run('x' as never), code('INVALID_ARGUMENT'));
+  });
+});
+
+describe('Mutex and withLock', () => {
+  it('serializes holders in FIFO order', async () => {
+    const mutex = new Mutex();
+    const order: number[] = [];
+    const release = await mutex.lock();
+    assert.equal(mutex.locked, true);
+    const waiters = [1, 2].map((id) => mutex.lock().then((next) => {
+      order.push(id);
+      next();
+    }));
+    assert.equal(mutex.pendingCount, 2);
+    release();
+    release();
+    await Promise.all(waiters);
+    assert.deepEqual(order, [1, 2]);
+    assert.equal(mutex.locked, false);
+  });
+
+  it('offers tryLock and removes aborted waiters', async () => {
+    const mutex = new Mutex();
+    const release = mutex.tryLock();
+    assert.ok(release);
+    assert.equal(mutex.tryLock(), null);
+    const controller = new AbortController();
+    const waiting = mutex.lock({ signal: controller.signal });
+    controller.abort('skip');
+    await assert.rejects(waiting, (reason: unknown) => reason === 'skip');
+    assert.equal(mutex.pendingCount, 0);
+    await assert.rejects(mutex.lock({ signal: AbortSignal.abort('early') }), (reason: unknown) => reason === 'early');
+    release();
+    assert.equal(mutex.locked, false);
+    await assert.rejects(mutex.lock(null as never), code('INVALID_ARGUMENT'));
+  });
+
+  it('withLock always releases, even when the function throws', async () => {
+    const mutex = new Mutex();
+    let inside = 0;
+    let maxInside = 0;
+    const work = async () => {
+      inside++;
+      maxInside = Math.max(maxInside, inside);
+      await flush(1);
+      inside--;
+      return 'done';
+    };
+    assert.deepEqual(await Promise.all([withLock(mutex, work), withLock(mutex, work)]), ['done', 'done']);
+    assert.equal(maxInside, 1);
+    await assert.rejects(withLock(mutex, () => {
+      throw new Error('inside');
+    }), /inside/);
+    assert.equal(mutex.locked, false);
+    await assert.rejects(withLock({} as never, () => 1), code('INVALID_ARGUMENT'));
+    await assert.rejects(withLock(mutex, 'x' as never), code('INVALID_ARGUMENT'));
+  });
+});
+
+describe('RWMutex', () => {
+  it('admits readers together and writers alone', async () => {
+    const lock = new RWMutex();
+    const readA = await lock.lockRead();
+    const readB = await lock.lockRead();
+    assert.equal(lock.readers, 2);
+    const write = settled(lock.lockWrite());
+    await flush();
+    assert.equal(write.state, 'pending');
+    readA();
+    readA();
+    readB();
+    await flush();
+    assert.equal(write.state, 'fulfilled');
+    assert.equal(lock.writing, true);
+    (write.value as () => void)();
+    assert.equal(lock.writing, false);
+  });
+
+  it('holds back readers that arrive after a waiting writer', async () => {
+    const lock = new RWMutex();
+    const order: string[] = [];
+    const firstRead = await lock.lockRead();
+    const writer = lock.lockWrite().then((release) => {
+      order.push('write');
+      release();
+    });
+    const lateReader = lock.lockRead().then((release) => {
+      order.push('read');
+      release();
+    });
+    assert.equal(lock.pendingCount, 2);
+    firstRead();
+    await Promise.all([writer, lateReader]);
+    assert.deepEqual(order, ['write', 'read']);
+  });
+
+  it('admits the readers behind an aborted writer', async () => {
+    const lock = new RWMutex();
+    const firstRead = await lock.lockRead();
+    const controller = new AbortController();
+    const writer = lock.lockWrite({ signal: controller.signal });
+    const reader = settled(lock.lockRead());
+    controller.abort('cancel');
+    await assert.rejects(writer, (reason: unknown) => reason === 'cancel');
+    await flush();
+    assert.equal(reader.state, 'fulfilled');
+    firstRead();
+    (reader.value as () => void)();
+    assert.equal(lock.readers, 0);
+    await assert.rejects(lock.lockRead({ signal: AbortSignal.abort('early') }), (reason: unknown) => reason === 'early');
+    await assert.rejects(lock.lockWrite({ signal: 'x' as never }), code('INVALID_ARGUMENT'));
+  });
+});
+
+describe('KeyedMutex', () => {
+  it('serializes per key, runs keys concurrently, and forgets idle keys', async () => {
+    const locks = new KeyedMutex();
+    const order: string[] = [];
+    const gate = deferred();
+    const first = locks.with('user:1', async () => {
+      await gate.promise;
+      order.push('1a');
+    });
+    const second = locks.with('user:1', () => {
+      order.push('1b');
+    });
+    const other = locks.with('user:2', () => {
+      order.push('2');
+    });
+    await other;
+    assert.deepEqual(order, ['2']);
+    assert.equal(locks.size, 1);
+    gate.resolve();
+    await Promise.all([first, second]);
+    assert.deepEqual(order, ['2', '1a', '1b']);
+    assert.equal(locks.size, 0);
+  });
+
+  it('forgets a key when its only waiter aborts', async () => {
+    const locks = new KeyedMutex();
+    const gate = deferred();
+    const holder = locks.with('k', () => gate.promise);
+    const controller = new AbortController();
+    const waiter = locks.with('k', () => 1, { signal: controller.signal });
+    controller.abort('leave');
+    await assert.rejects(waiter, (reason: unknown) => reason === 'leave');
+    gate.resolve();
+    await holder;
+    assert.equal(locks.size, 0);
+    await assert.rejects(locks.with('k', () => 1, { signal: AbortSignal.abort('early') }), (reason: unknown) => reason === 'early');
+    assert.equal(locks.size, 0);
+  });
+
+  it('validates keys and functions', async () => {
+    const locks = new KeyedMutex();
+    await assert.rejects(locks.with(1 as never, () => 1), code('INVALID_ARGUMENT'));
+    await assert.rejects(locks.with('k', 'x' as never), code('INVALID_ARGUMENT'));
   });
 });
