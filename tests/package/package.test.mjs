@@ -19,7 +19,8 @@ function run(command, args, cwd) {
 before(() => {
   workspace = mkdtempSync(join(tmpdir(), 'quorin-package-'));
   const output = JSON.parse(run(npm, ['pack', '--json', '--ignore-scripts', '--pack-destination', workspace], root));
-  packed = output[0];
+  // npm 12 keys pack --json output by package name; npm 11 returns an array.
+  packed = Array.isArray(output) ? output[0] : Object.values(output)[0];
   fixture = join(workspace, 'fixture');
   mkdirSync(fixture);
   writeFileSync(join(fixture, 'package.json'), JSON.stringify({ name: 'fixture', private: true, type: 'module' }));
