@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="q-ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12a4ff"/><stop offset="0.45" stop-color="#1f4dff"/><stop offset="1" stop-color="#3a1fb0"/>
+    </linearGradient>
+    <linearGradient id="q-tail" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2148ff"/><stop offset="1" stop-color="#c79bff"/>
+    </linearGradient>
+    <radialGradient id="q-core" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#2d6bff"/><stop offset="1" stop-color="#1638d8"/>
+    </radialGradient>
+    <filter id="q-goo" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="b"/>
+      <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="g"/>
+      <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+    </filter>
+  </defs>
+  <g filter="url(#q-goo)">
+    <circle cx="52" cy="52" r="35" fill="none" stroke="url(#q-ring)" stroke-width="19"/>
+    <circle cx="52" cy="52" r="11.5" fill="url(#q-core)"/>
+    <path d="M52 52 C 62 64, 74 74, 93 92" fill="none" stroke="url(#q-tail)" stroke-width="7.5" stroke-linecap="round"/>
+    <circle cx="95" cy="94" r="12.5" fill="url(#q-tail)"/>
+  </g>
+</svg>

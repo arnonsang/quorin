@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://arnonsang.github.io/quorin/logo.svg" alt="" width="120" height="120">
+
 # quorin
 
 **Small primitives for dependable TypeScript.**
