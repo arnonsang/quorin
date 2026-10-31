@@ -137,6 +137,13 @@ a.card:hover { border-color: var(--blue); transform: translateY(-2px); }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(11, 16, 32, 0.12); }
 .seg button[data-mode="naive"][aria-pressed="true"] { color: var(--bad); }
 .doclink { font-size: 14px; }
+.pager { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.pager a { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; min-width: 0; }
+.pager a:hover { border-color: var(--blue); }
+.pager a.next { text-align: right; }
+@media (max-width: 520px) { .pager { grid-template-columns: minmax(0, 1fr); } }
+.pager small { color: var(--muted); font-size: 12px; }
+.pager code { font-size: 14px; overflow-wrap: anywhere; }
 .stage-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .stage { display: block; width: 100%; height: auto; aspect-ratio: 720 / 340; max-width: 100%; }
 .legend-row { display: flex; flex-wrap: wrap; gap: 14px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
@@ -1981,6 +1988,13 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     ['Resilience', [resilienceScene]],
     ['Data', [cacheScene, dequeScene]],
   ];
+  const ORDER = GROUPS.flatMap(([label, list]) => list.map((scene) => ({ scene, label })));
+  const OVERVIEW_LINK = { id: 'overview', name: 'Overview', label: 'Back to start' };
+  function neighbors(id) {
+    const i = ORDER.findIndex((o) => o.scene.id === id);
+    const link = (o) => (o ? { id: o.scene.id, name: o.scene.name, label: o.label } : OVERVIEW_LINK);
+    return { prev: link(ORDER[i - 1]), next: link(ORDER[i + 1]) };
+  }
 
   /* ---------------- Renderer ---------------- */
   function interpolate(a, b, k) {
@@ -2211,6 +2225,11 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); root.querySelector('[data-step]').click(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); root.querySelector('[data-back]').click(); }
+      else if (e.key === '[' || e.key === ']') {
+        e.preventDefault();
+        const { prev, next } = neighbors(scene.id);
+        location.hash = '#' + (e.key === '[' ? prev : next).id;
+      }
     };
     document.addEventListener('keydown', onKey);
     paramInput.addEventListener('input', () => {
@@ -2484,6 +2503,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   });
 
   function vizPage(scene) {
+    const { prev, next } = neighbors(scene.id);
     main.innerHTML = `
       <div class="page">
         <header class="viz-head">
@@ -2500,7 +2520,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
         </div>
         <div class="stage-card">
           <div data-stage></div>
-          <div class="legend-row">${scene.legend.map(([c, l]) => `<span><i style="background:var(--${c})"></i>${esc(l)}</span>`).join('')}<span class="keys"><kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> step</span></div>
+          <div class="legend-row">${scene.legend.map(([c, l]) => `<span><i style="background:var(--${c})"></i>${esc(l)}</span>`).join('')}<span class="keys"><kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> step <kbd>[</kbd><kbd>]</kbd> page</span></div>
           <div class="controls">
             <button class="btn" type="button" data-play aria-pressed="false">Play</button>
             <button class="btn" type="button" data-back aria-label="Step back">Back</button>
@@ -2524,6 +2544,10 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
             <div class="box"><h3>What to notice</h3><ul class="notice" data-notice></ul></div>
           </div>
         </div>
+        <nav class="pager" aria-label="More visualizers">
+          <a class="prev" href="#${prev.id}" rel="prev"><small>Previous · ${esc(prev.label)}</small><code>${esc(prev.name)}</code></a>
+          <a class="next" href="#${next.id}" rel="next"><small>Next · ${esc(next.label)}</small><code>${esc(next.name)}</code></a>
+        </nav>
       </div>`;
     return createPlayer(main.firstElementChild, scene);
   }
