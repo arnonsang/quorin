@@ -11,6 +11,7 @@ npm test               # runtime tests on the TypeScript sources
 npm run test:coverage  # tests with coverage thresholds, writes coverage/lcov.info
 npm run test:package   # builds, packs, installs the tarball, and checks imports, require, and types
 npm run check:skill    # typechecks the code examples in the agent skill
+npm run check:site     # checks that the site's Try it pages load the current version
 npm run check          # all of the above
 ```
 
@@ -41,5 +42,7 @@ Releases are published from CI with [npm trusted publishing](https://docs.npmjs.
 npm version patch   # or minor, major; updates package.json and creates the v* tag
 git push --follow-tags
 ```
+
+`npm version` also updates the quorin version that the site's Try it pages load from jsDelivr and includes it in the version commit. Until the new version is published, those pages show a message that the library could not be loaded.
 
 The `Release` workflow checks that the tag matches `package.json`, runs `npm run check`, and publishes. If the package uses npm staged publishing, approve the staged version with `npm stage approve <id>` or on npmjs.com.

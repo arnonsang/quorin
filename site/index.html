@@ -117,7 +117,7 @@ h2 { font-family: var(--font-display); font-weight: 800; font-size: 24px; margin
 .legend-item svg { flex: none; width: 56px; height: 36px; }
 .legend-item strong { display: block; font-size: 14px; }
 .legend-item span { font-size: 13px; color: var(--muted); }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .card { display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; transition: border-color .15s, transform .15s; }
 a.card:hover { border-color: var(--blue); transform: translateY(-2px); }
 .card .preview { border-radius: 10px; background: var(--surface-2); aspect-ratio: 720 / 340; width: 100%; display: block; }
@@ -137,6 +137,35 @@ a.card:hover { border-color: var(--blue); transform: translateY(-2px); }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(11, 16, 32, 0.12); }
 .seg button[data-mode="naive"][aria-pressed="true"] { color: var(--bad); }
 .doclink { font-size: 14px; }
+.card-try .try-fns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.card-try .try-fns code { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; background: var(--surface-2); }
+.try-status { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+.try-status i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); display: inline-block; }
+.try-status.ready i { background: var(--ok); }
+.try-status.failed i { background: var(--bad); }
+.try { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.try-top { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.fn-tabs, .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.fn-tabs button { font-family: var(--font-mono); font-size: 13px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 9px; padding: 5px 11px; cursor: pointer; }
+.fn-tabs button[aria-selected="true"] { color: var(--blue); border-color: var(--blue); background: var(--surface-2); }
+.presets button { font-size: 12.5px; border: 1px dashed var(--line); background: transparent; color: var(--ink); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.presets button:hover, .presets button[aria-pressed="true"] { border-color: var(--blue); border-style: solid; }
+.try-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.try-in, .try-out { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; min-width: 0; }
+.try-in { border-right: 1px solid var(--line); }
+.try textarea { width: 100%; min-height: 190px; resize: vertical; font-family: var(--font-mono); font-size: 13px; line-height: 1.55; background: var(--code-bg); color: var(--code-ink); border: 0; border-radius: 12px; padding: 12px 14px; }
+.try-result { margin: 0; min-height: 190px; font-size: 13px; line-height: 1.55; background: var(--surface-2); border-radius: 12px; padding: 12px 14px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.try-result.failed { color: var(--bad); }
+.try-meta { font-size: 12.5px; color: var(--muted); min-height: 1.5em; }
+.try-code { background: var(--code-bg); color: var(--code-ink); }
+.try-code .code { border-radius: 0; background: transparent; padding: 10px 18px 14px; white-space: pre-wrap; }
+.pager { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.pager a { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; min-width: 0; }
+.pager a:hover { border-color: var(--blue); }
+.pager a.next { text-align: right; }
+@media (max-width: 520px) { .pager { grid-template-columns: minmax(0, 1fr); } }
+.pager small { color: var(--muted); font-size: 12px; }
+.pager code { font-size: 14px; overflow-wrap: anywhere; }
 .stage-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .stage { display: block; width: 100%; height: auto; aspect-ratio: 720 / 340; max-width: 100%; }
 .legend-row { display: flex; flex-wrap: wrap; gap: 14px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
@@ -157,6 +186,12 @@ input[type="range"] { accent-color: var(--blue); width: 120px; }
 .code .k { color: #c59bff; }
 .code .s { color: #7fe3b8; }
 .code .n { color: #ffb86b; }
+.code-card { background: var(--code-bg); color: var(--code-ink); border-radius: var(--radius); overflow: hidden; min-width: 0; display: flex; flex-direction: column; }
+.code-card .code { border-radius: 0; background: transparent; flex: 1; }
+.imports { padding: 10px 18px; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); font-family: var(--font-mono); font-size: 13px; line-height: 1.7; white-space: pre; overflow-x: auto; }
+.imports .k { color: #c59bff; }
+.imports .sub { color: #7fe3b8; background: rgba(127, 227, 184, 0.12); border-radius: 4px; padding: 0 3px; }
+.imports.naive { color: var(--code-dim); font-style: italic; }
 .side-panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
 .box h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
@@ -179,9 +214,15 @@ input[type="range"] { accent-color: var(--blue); width: 120px; }
 .tile-stats { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-content: center; }
 .tile-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--muted); }
 .tile-install .tile-label { color: rgba(255, 255, 255, 0.78); }
+.pm { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; background: rgba(255, 255, 255, 0.14); border-radius: 11px; padding: 3px; }
+.pm button { border: 0; background: transparent; color: rgba(255, 255, 255, 0.84); font-family: var(--font-mono); font-size: 12.5px; padding: 5px 2px; border-radius: 8px; cursor: pointer; min-width: 0; }
+.pm button:hover { background: rgba(255, 255, 255, 0.12); }
+.pm button[aria-selected="true"] { background: #fff; color: #1f4dff; font-weight: 500; }
+.pm button:focus-visible { outline-color: #fff; }
 .tile-install .cmdline { font-family: var(--font-mono); font-size: 17px; word-break: break-word; }
 .tile-install .cmdline .prompt { opacity: 0.7; margin-right: 8px; }
 .tile-install p { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, 0.86); }
+.tile-install p a { color: #fff; }
 .btn-on-solid { border: 1px solid rgba(255, 255, 255, 0.5); background: transparent; color: #fff; border-radius: 10px; padding: 6px 12px; cursor: pointer; font-size: 13.5px; font-weight: 600; align-self: flex-start; }
 .btn-on-solid:hover { background: rgba(255, 255, 255, 0.14); }
 .btn-on-solid:focus-visible { outline-color: #fff; }
@@ -274,7 +315,8 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   .nav span.soon { display: none; }
   .side-foot { display: none; }
   main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px; }
-  .panels { grid-template-columns: minmax(0, 1fr); }
+  .panels, .try-body { grid-template-columns: minmax(0, 1fr); }
+  .try-in { border-right: 0; border-bottom: 1px solid var(--line); }
   .search, .hint { display: none; }
   .main-col { min-height: 0; }
   .foot { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -360,8 +402,25 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
 <script>
 (() => {
   const DOCS = 'https://github.com/arnonsang/quorin/blob/main/docs/';
+  // Kept in sync with package.json by scripts/sync-site-version.mjs during a release.
+  const QUORIN_VERSION = '0.2.0';
+  let quorinModule = null;
+  const loadQuorin = () => {
+    quorinModule ??= import(`https://cdn.jsdelivr.net/npm/quorin@${QUORIN_VERSION}/+esm`).catch((error) => { quorinModule = null; throw error; });
+    return quorinModule;
+  };
+  const NODE_NOTE = 'One ESM build with types. <code>require()</code> works too.';
+  const TARGET_NOTE = (runtime) => `${runtime} is a target but not yet verified in CI. <a href="${DOCS}compatibility.md">Compatibility</a>`;
+  const PMS = [
+    ['npm', 'npm install quorin', NODE_NOTE],
+    ['pnpm', 'pnpm add quorin', NODE_NOTE],
+    ['yarn', 'yarn add quorin', NODE_NOTE],
+    ['bun', 'bun add quorin', TARGET_NOTE('Bun')],
+    ['deno', 'deno add npm:quorin', TARGET_NOTE('Deno')],
+  ];
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   const lerp = (a, b, k) => a + (b - a) * k;
   const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
   const spring = (k) => (k >= 1 ? 1 : 1 - Math.exp(-7 * k) * Math.cos(8 * k));
@@ -401,6 +460,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'channel',
     name: 'Channel',
     subpath: 'quorin/async',
+    imports: ['Channel'],
     doc: 'concurrency.md#channelt',
     use: 'Hand jobs from a fast producer to a slower consumer without letting the backlog grow without limit.',
     param: { label: 'Capacity', min: 0, max: 4, value: 2 },
@@ -570,6 +630,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'select',
     name: 'select',
     subpath: 'quorin/async',
+    imports: ['select', 'receive', 'after'],
     doc: 'concurrency.md#selectcases-options',
     use: 'Wait for whichever of several channels, timers, or aborts happens first, and take exactly one.',
     param: { label: 'Rounds', min: 1, max: 4, value: 2 },
@@ -724,6 +785,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'task-group',
     name: 'createTaskGroup',
     subpath: 'quorin/async',
+    imports: ['createTaskGroup'],
     doc: 'concurrency.md#createtaskgroupoptions',
     use: 'Run related jobs together, cap how many run at once, and stop all of them cleanly when one fails.',
     param: { label: 'Concurrency', min: 1, max: 4, value: 2 },
@@ -887,6 +949,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'resilience',
     name: 'withResilience',
     subpath: 'quorin/resilience',
+    imports: ['withResilience'],
     doc: 'resilience.md#withresiliencetask-options',
     use: 'Call a flaky service with per-attempt timeouts, safe retries, backoff, and one overall deadline.',
     param: { label: 'Retries', min: 0, max: 3, value: 2 },
@@ -1084,6 +1147,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'concurrency-limit',
     name: 'concurrencyLimit',
     subpath: 'quorin/async',
+    imports: ['concurrencyLimit'],
     doc: 'async.md#' + slug('concurrencyLimit(concurrency, { maxPending = 1024 })'),
     use: 'Call an API that only handles a few requests at a time, and queue the rest instead of getting rejected.',
     param: { label: 'Concurrency', min: 1, max: 4, value: 2 },
@@ -1252,6 +1316,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'rate-limiter',
     name: 'createRateLimiter',
     subpath: 'quorin/async',
+    imports: ['createRateLimiter'],
     doc: 'async.md#' + slug('createRateLimiter({ rate, intervalMs = 1000, burst = rate, maxPending = 1024 })'),
     use: 'Stay under an API rate limit by spending tokens that refill over time, instead of sending everything at once.',
     param: { label: 'Rate per second', min: 1, max: 3, value: 2 },
@@ -1375,6 +1440,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'single-flight',
     name: 'singleFlight',
     subpath: 'quorin/async',
+    imports: ['singleFlight'],
     doc: 'async.md#' + slug('singleFlight(fn, { key, maxInFlight = 1024 })'),
     use: 'When many handlers ask for the same thing at the same moment, make one call and share the answer.',
     param: { label: 'Callers', min: 2, max: 6, value: 4 },
@@ -1479,6 +1545,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'cache',
     name: 'createCache',
     subpath: 'quorin/cache',
+    imports: ['createCache'],
     doc: 'cache.md#' + slug('createCache(options)'),
     use: 'Keep recent results close, with a hard size limit, coalesced loads, and stale data served while it refreshes.',
     param: { label: 'max', min: 2, max: 4, value: 3 },
@@ -1680,6 +1747,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'mutex',
     name: 'Mutex',
     subpath: 'quorin/async',
+    imports: ['Mutex', 'withLock'],
     doc: 'concurrency.md#' + slug('`Mutex` and `withLock(mutex, fn, options?)`'),
     use: 'Stop async read, then write steps from overwriting each other when several tasks touch the same record.',
     param: { label: 'Tasks', min: 2, max: 4, value: 3 },
@@ -1795,6 +1863,651 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     },
   };
 
+  /* ---------------- RWMutex ---------------- */
+  const rwScene = {
+    id: 'rw-mutex',
+    name: 'RWMutex',
+    subpath: 'quorin/async',
+    imports: ['RWMutex'],
+    doc: 'concurrency.md#' + slug('`RWMutex`'),
+    use: 'Let many readers share a config or cache at once, while a writer still gets it alone and is never starved by new readers.',
+    param: { label: 'Readers', min: 2, max: 5, value: 3 },
+    legend: [['blue', 'reader'], ['lilac', 'writer'], ['warn', 'waiting'], ['ok', 'done']],
+    notice: {
+      quorin: [
+        'Readers at the front of the line enter together, so reads do not wait for each other.',
+        'A writer waits for the readers inside to leave, then holds the lock alone.',
+        'A reader that arrives after a waiting writer queues behind it, so a steady stream of reads cannot starve writes.',
+      ],
+      naive: [
+        'One lock for everything means reads wait in single file, even though they never conflict.',
+        'Every extra reader adds a whole turn, so read-heavy traffic piles up behind the lock.',
+      ],
+    },
+    code(mode) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> config = <span class="k">new</span> RWMutex();',
+            '',
+            '<span class="k">async function</span> read() {',
+            '  <span class="k">const</span> release = <span class="k">await</span> config.lockRead(); <span class="c">// many readers at once</span>',
+            '  <span class="k">try</span> { <span class="k">return await</span> load(); } <span class="k">finally</span> { release(); }',
+            '}',
+            '<span class="k">async function</span> write(next: Config) {',
+            '  <span class="k">const</span> release = <span class="k">await</span> config.lockWrite(); <span class="c">// alone, after the readers</span>',
+            '  <span class="k">try</span> { <span class="k">await</span> save(next); } <span class="k">finally</span> { release(); }',
+            '}',
+          ]
+        : [
+            '<span class="k">let</span> tail = Promise.resolve(); <span class="c">// one lock for reads and writes</span>',
+            '<span class="k">function</span> locked&lt;T&gt;(fn: () =&gt; Promise&lt;T&gt;) {',
+            '  <span class="k">const</span> run = tail.then(fn);',
+            '  tail = run.catch(() =&gt; {});',
+            '  <span class="k">return</span> run;',
+            '}',
+            '<span class="k">const</span> read = () =&gt; locked(() =&gt; load()); <span class="c">// single file</span>',
+            '<span class="k">const</span> write = (next: Config) =&gt; locked(() =&gt; save(next));',
+          ];
+    },
+    hubs: () => [],
+    stat(mode) {
+      let s = svgText(70, 24, 'arrive', 'cap', 'middle') + svgText(640, 24, 'done', 'cap', 'middle');
+      s += `<rect x="310" y="80" width="100" height="180" rx="22" style="fill:var(--surface-2);stroke:var(--line)" stroke-width="1.5"/>`;
+      s += svgText(360, 68, mode === 'quorin' ? 'RWMutex' : 'one lock', 'cap-strong', 'middle');
+      return s;
+    },
+    hud(h) {
+      let s = svgText(360, 282, `readers ${h.readers || 0} · writer ${h.writer || 'none'}`, 'cap', 'middle');
+      if (h.turns) s += svgText(470, 174, `turn ${h.turns}`, 'cap-strong', 'start');
+      if (h.status) s += svgText(360, 322, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, n) {
+      const T = timeline();
+      const total = n + 2;
+      const home = (i) => ({ x: 70, y: col(i, total, 40) });
+      const done = (i) => ({ x: 640, y: col(i, total, 40) });
+      const inLock = (i, k) => ({ x: 360, y: col(i, k, 34) });
+      const wait = { x: 230, y: 170 };
+      const late = 'R' + (n + 1);
+      const readers = n === 1 ? 'R1' : `R1 to R${n}`;
+      for (let i = 0; i < n; i++) T.set('r' + i, Object.assign(home(i), { r: 12, fill: 'blue', label: 'R' + (i + 1) }));
+      T.set('w', Object.assign(home(n), { r: 12, fill: 'lilac', label: 'W' }));
+      T.hud({ readers: '0', writer: '', turns: '', status: '', tone: 'ink' });
+      if (mode === 'naive') {
+        T.push(500, [0], `${n} reader${n === 1 ? '' : 's'} line up, then the writer W`, '');
+        T.set('late', Object.assign(home(n + 1), { sx: -20, r: 12, fill: 'blue', label: late, ring: 'warn' }));
+        const order = [...Array.from({ length: n }, (_, i) => 'r' + i), 'w', 'late'];
+        order.forEach((id, k) => {
+          if (k > 0) T.set(order[k - 1], Object.assign(done(k - 1), { fill: 'ok' }));
+          for (let j = k + 1; j < order.length; j++) T.set(order[j], { ring: 'warn' });
+          T.set(id, Object.assign({}, inLock(0, 1), { ring: false }));
+          const isWriter = id === 'w';
+          T.hud({ readers: isWriter ? '0' : '1', writer: isWriter ? 'W' : '', turns: String(k + 1) });
+          const who = isWriter ? 'W' : id === 'late' ? late : 'R' + (k + 1);
+          T.push(650, [isWriter ? 7 : 6, 2], `${who} takes the lock alone (turn ${k + 1})`, '');
+        });
+        T.set('late', Object.assign(done(total - 1), { fill: 'ok' }));
+        T.hud({ readers: '0', writer: '', status: `${total} requests took ${total} turns, one read at a time`, tone: 'bad' });
+        T.push(1400, [6], `${total} turns: every read waited for the one before it`, '');
+        return T.frames;
+      }
+      T.push(500, [0], `${n} reader${n === 1 ? '' : 's'} line up, then the writer W`, '');
+      for (let i = 0; i < n; i++) T.set('r' + i, inLock(i, n));
+      T.set('w', Object.assign({}, wait, { ring: 'warn' }));
+      T.hud({ readers: String(n), turns: '1' });
+      T.push(700, [3], `${readers} ${n === 1 ? 'is' : 'are'} at the front, so ${n === 1 ? 'it gets' : 'they all get'} the read lock together`, '');
+      T.set('late', { x: 150, y: 170, sx: -20, sy: 170, r: 12, fill: 'blue', label: late, ring: 'warn' });
+      T.push(800, [7, 3], `W waits for the readers. ${late} arrives after W, so it queues behind W`, '');
+      for (let i = 0; i < n; i++) T.set('r' + i, Object.assign(done(i), { fill: 'ok' }));
+      T.hud({ readers: '0' });
+      T.push(700, [4], 'the readers finish and release their read locks', '');
+      T.set('w', Object.assign({}, inLock(0, 1), { ring: false }));
+      T.set('late', { x: 230, y: 170 });
+      T.hud({ writer: 'W', turns: '2' });
+      T.push(700, [7, 8], 'W holds the lock alone. Nobody reads while it writes', '');
+      T.set('w', Object.assign(done(n), { fill: 'ok' }));
+      T.set('late', Object.assign({}, inLock(0, 1), { ring: false }));
+      T.hud({ writer: '', readers: '1', turns: '3' });
+      T.push(700, [9, 3], `W releases, and ${late} reads`, '');
+      T.set('late', Object.assign(done(n + 1), { fill: 'ok' }));
+      T.hud({ readers: '0', status: `${total} requests in 3 turns, and the writer was not starved`, tone: 'ok' });
+      T.push(1400, [4], `${total} requests took 3 turns instead of ${total}`, '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- KeyedMutex ---------------- */
+  const keyedScene = {
+    id: 'keyed-mutex',
+    name: 'KeyedMutex',
+    subpath: 'quorin/async',
+    imports: ['KeyedMutex'],
+    doc: 'concurrency.md#' + slug('`KeyedMutex`'),
+    use: 'Keep updates to the same user, session or file in order, while updates to different keys still run at the same time.',
+    param: { label: 'Users', min: 1, max: 4, value: 2 },
+    legend: [['blue', 'credit of +10'], ['warn', 'waiting for its key'], ['ok', 'applied'], ['bad', 'lost']],
+    notice: {
+      quorin: [
+        'Work on one key runs one at a time, so each credit reads the balance after the previous write.',
+        'Different keys never wait for each other. Every user\'s first credit starts at once.',
+        'A key is forgotten once nobody holds or waits for it, so memory follows the work in progress.',
+      ],
+      naive: [
+        'Both credits for a user read 100 before either writes.',
+        'Both write 110, so one credit per user disappears without an error.',
+      ],
+    },
+    code(mode, k) {
+      const run = `<span class="k">await</span> Promise.all(users.flatMap((id) =&gt; [credit(id, <span class="n">10</span>), credit(id, <span class="n">10</span>)])); <span class="c">// ${k} user${k === 1 ? '' : 's'}</span>`;
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> perUser = <span class="k">new</span> KeyedMutex();',
+            '',
+            '<span class="k">async function</span> credit(id: string, amount: number) {',
+            '  <span class="k">await</span> perUser.with(<span class="s">`user:${id}`</span>, <span class="k">async</span> () =&gt; {',
+            '    <span class="k">const</span> balance = <span class="k">await</span> readBalance(id);',
+            '    <span class="k">await</span> writeBalance(id, balance + amount);',
+            '  });',
+            '}',
+            '',
+            run,
+          ]
+        : [
+            '<span class="k">async function</span> credit(id: string, amount: number) {',
+            '  <span class="k">const</span> balance = <span class="k">await</span> readBalance(id);',
+            '  <span class="k">await</span> writeBalance(id, balance + amount);',
+            '}',
+            '',
+            run,
+          ];
+    },
+    hubs: () => [],
+    stat(mode, k) {
+      const gap = k > 2 ? 60 : 90;
+      let s = svgText(560, 24, 'balance', 'cap', 'middle') + svgText(665, 24, 'done', 'cap', 'middle');
+      for (let r = 0; r < k; r++) {
+        const y = col(r, k, gap);
+        s += svgText(84, y + 4, `user:${'abcd'[r]}`, 'cap-strong', 'end');
+        if (mode === 'quorin') s += `<rect x="296" y="${y - 22}" width="68" height="44" rx="14" style="fill:var(--surface-2);stroke:var(--line)" stroke-width="1.5"/>`;
+      }
+      if (mode === 'quorin') s += svgText(330, col(0, k, gap) - 30, 'lock per key', 'cap', 'middle');
+      return s;
+    },
+    hud(h, mode, k) {
+      const gap = k > 2 ? 60 : 90;
+      let s = '';
+      (h.bal || '').split('|').forEach((b, r) => { s += `<text x="560" y="${col(r, k, gap)}" class="big" text-anchor="middle" dominant-baseline="central">${esc(b)}</text>`; });
+      if (mode === 'quorin') s += svgText(360, 322, `keys held: ${h.size || 0}`, 'cap', 'middle');
+      if (h.status) s += svgText(360, 304, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, k) {
+      const T = timeline();
+      const gap = k > 2 ? 60 : 90;
+      const y = (r) => col(r, k, gap);
+      const bal = (v) => T.hud({ bal: new Array(k).fill(v).join('|') });
+      for (let r = 0; r < k; r++) {
+        T.set('a' + r, { x: 112, y: y(r), r: 12, fill: 'blue', label: 'a' });
+        T.set('b' + r, { x: 156, y: y(r), r: 12, fill: 'blue', label: 'b' });
+      }
+      bal('100');
+      T.hud({ size: '0', status: '', tone: 'ink' });
+      T.push(500, [mode === 'quorin' ? 9 : 5], `${2 * k} credits of +10, two for each user`, '');
+      if (mode === 'naive') {
+        for (let r = 0; r < k; r++) {
+          T.set('a' + r, { x: 480, y: y(r) - 20 });
+          T.set('b' + r, { x: 480, y: y(r) + 20 });
+        }
+        T.push(800, [1], 'both credits for each user read 100 at the same time', '');
+        for (let r = 0; r < k; r++) {
+          T.set('a' + r, { x: 640, y: y(r), fill: 'bad', broken: true });
+          T.set('b' + r, { x: 688, y: y(r), fill: 'ok' });
+        }
+        bal('110');
+        T.push(800, [2], 'both write 100 + 10 = 110, so the second write erases the first', '');
+        T.hud({ status: `every user should have 120 but has 110: ${k} credit${k === 1 ? '' : 's'} lost`, tone: 'bad' });
+        T.push(1400, [2], `${k} of ${2 * k} credits vanished without an error`, '');
+        return T.frames;
+      }
+      for (let r = 0; r < k; r++) {
+        T.set('a' + r, { x: 330, y: y(r) });
+        T.set('b' + r, { x: 240, y: y(r), ring: 'warn' });
+      }
+      T.hud({ size: String(k) });
+      T.push(700, [3], k === 1 ? 'credit a takes the user:a lock, and b waits for it' : 'every user\'s first credit starts at once. Different keys do not wait for each other', '');
+      for (let r = 0; r < k; r++) {
+        T.set('a' + r, { x: 640, y: y(r), fill: 'ok' });
+        T.set('b' + r, { x: 330, y: y(r), ring: false });
+      }
+      bal('110');
+      T.push(800, [4, 5], 'each first credit reads 100 and writes 110, then b gets the lock for its user', '');
+      for (let r = 0; r < k; r++) T.set('b' + r, { x: 688, y: y(r), fill: 'ok' });
+      bal('120');
+      T.hud({ size: '0' });
+      T.push(800, [4, 5], 'each b reads 110 and writes 120. Idle keys are forgotten', '');
+      T.hud({ status: `every user has 120: all ${2 * k} credits counted`, tone: 'ok' });
+      T.push(1400, [9], k === 1 ? 'the two credits for user:a ran in order' : 'same-key work ran in order, different keys ran side by side', '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- mapAsync ---------------- */
+  const MAP_DUR = [3, 1, 2, 1, 3, 1];
+  const mapX = (i) => 120 + i * 96;
+  const mapScene = {
+    id: 'map-async',
+    name: 'mapAsync',
+    subpath: 'quorin/async',
+    imports: ['mapAsync'],
+    doc: 'async.md#' + slug('mapAsync(items, mapper, { concurrency = 4, signal })'),
+    use: 'Map a list with async work a few items at a time, and get the results back in the same order as the input.',
+    param: { label: 'Concurrency', min: 1, max: 4, value: 3 },
+    fixedInNaive: true,
+    legend: [['dot-muted', 'waiting'], ['blue', 'running'], ['ok', 'in its own slot'], ['bad', 'in the wrong slot']],
+    notice: {
+      quorin: [
+        'Only <code>concurrency</code> items run at once. The next one starts as soon as a slot frees up.',
+        'Items finish out of order, but each result lands in the slot of its input, so <code>pages[i]</code> belongs to <code>urls[i]</code>.',
+        'The first failure or an abort stops new work and aborts the signal passed to the running mappers.',
+      ],
+      naive: [
+        'Every request starts at once, with no limit.',
+        '<code>push</code> appends results in the order they finish, so they no longer line up with the input.',
+      ],
+    },
+    code(mode, c) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> pages = <span class="k">await</span> mapAsync(urls, <span class="k">async</span> (url, index, { signal }) =&gt; {',
+            '  <span class="k">const</span> response = <span class="k">await</span> fetch(url, { signal });',
+            '  <span class="k">return</span> response.json();',
+            `}, { concurrency: <span class="n">${c}</span> });`,
+            '<span class="c">// pages[i] belongs to urls[i]</span>',
+          ]
+        : [
+            '<span class="k">const</span> pages: Page[] = [];',
+            '<span class="k">await</span> Promise.all(urls.map(<span class="k">async</span> (url) =&gt; {',
+            '  <span class="k">const</span> response = <span class="k">await</span> fetch(url);',
+            '  pages.push(<span class="k">await</span> response.json()); <span class="c">// in the order they finish</span>',
+            '}));',
+          ];
+    },
+    hubs: () => [],
+    stat(mode, c) {
+      let s = svgText(20, 74, 'urls', 'cap') + svgText(20, 174, 'running', 'cap') + svgText(20, 274, 'pages', 'cap');
+      s += `<rect x="96" y="144" width="528" height="52" rx="26" style="fill:none;stroke:var(--line)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+      for (let i = 0; i < MAP_DUR.length; i++) {
+        s += `<rect x="${mapX(i) - 16}" y="254" width="32" height="32" rx="9" style="fill:none;stroke:var(--dot-muted)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+        s += svgText(mapX(i), 304, `[${i}]`, 'cap', 'middle');
+        s += svgText(mapX(i), 42, `${MAP_DUR[i]}s`, 'cap', 'middle');
+      }
+      s += svgText(660, 174, mode === 'quorin' ? `limit ${c}` : 'no limit', 'cap-strong', 'start');
+      return s;
+    },
+    hud(h) {
+      let s = svgText(700, 42, `t = ${h.t || 0}s`, 'cap-strong', 'end');
+      if (h.status) s += svgText(360, 330, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, c) {
+      const T = timeline();
+      const n = MAP_DUR.length;
+      const list = (ids) => (ids.length === 1 ? `item ${ids[0]}` : `items ${ids.slice(0, -1).join(', ')} and ${ids[ids.length - 1]}`);
+      for (let i = 0; i < n; i++) T.set('i' + i, { x: mapX(i), y: 70, r: 12, fill: 'dot-muted', label: String(i) });
+      T.hud({ t: '0', status: '', tone: 'ink' });
+      T.push(500, [0], `${n} urls to fetch. The numbers on top are how long each one takes`, '');
+      const start = (i) => T.set('i' + i, { y: 170, fill: 'blue' });
+      if (mode === 'naive') {
+        for (let i = 0; i < n; i++) start(i);
+        T.push(700, [1], `all ${n} requests start at once`, 0);
+        const order = [];
+        for (const t of [...new Set(MAP_DUR)].sort((a, b) => a - b)) {
+          const ids = MAP_DUR.map((d, i) => (d === t ? i : -1)).filter((i) => i >= 0);
+          for (const i of ids) {
+            T.set('i' + i, { x: mapX(order.length), y: 270, fill: 'warn' });
+            order.push(i);
+          }
+          T.hud({ t: String(t) });
+          T.push(700, [3], `${list(ids)} finish${ids.length === 1 ? 'es' : ''} and ${ids.length === 1 ? 'is' : 'are'} pushed to the end`, t);
+        }
+        order.forEach((item, slot) => T.set('i' + item, { fill: item === slot ? 'ok' : 'bad' }));
+        T.hud({ status: `pages is [${order.join(', ')}], not [${order.slice().sort((a, b) => a - b).join(', ')}]`, tone: 'bad' });
+        T.push(1400, [3], 'no result is in the slot of its url', '');
+        return T.frames;
+      }
+      const end = new Array(n).fill(Infinity);
+      let next = 0;
+      const running = new Set();
+      const launch = (t) => {
+        const started = [];
+        while (running.size < c && next < n) {
+          start(next);
+          end[next] = t + MAP_DUR[next];
+          running.add(next);
+          started.push(next++);
+        }
+        return started;
+      };
+      const first = launch(0);
+      T.push(700, [0, 3], `${list(first)} start${first.length === 1 ? 's' : ''}; the rest wait for a slot`, 0);
+      while (running.size) {
+        const t = Math.min(...[...running].map((i) => end[i]));
+        const finished = [...running].filter((i) => end[i] === t).sort((a, b) => a - b);
+        for (const i of finished) {
+          running.delete(i);
+          T.set('i' + i, { y: 270, fill: 'ok' });
+        }
+        const started = launch(t);
+        T.hud({ t: String(t) });
+        const into = finished.map((i) => `[${i}]`).join(', ');
+        T.push(700, started.length ? [2, 1] : [2], `${list(finished)} finish${finished.length === 1 ? 'es' : ''} into slot ${into}${started.length ? `; ${list(started)} start${started.length === 1 ? 's' : ''}` : ''}`, t);
+      }
+      T.hud({ status: 'finished out of order, returned in input order', tone: 'ok' });
+      T.push(1400, [4], `every result sits in the slot of its url, with at most ${c} running`, '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- timeoutSignal ---------------- */
+  const SIGNAL_ROWS = [['A', 'fetch takes 1s'], ['B', 'fetch takes 5s'], ['C', 'client leaves at 1s']];
+  const signalY = (r) => 90 + r * 80;
+  const timeoutScene = {
+    id: 'timeout-signal',
+    name: 'timeoutSignal',
+    subpath: 'quorin/signal',
+    imports: ['timeoutSignal'],
+    doc: 'signal.md#' + slug('`timeoutSignal(ms, { signal })`'),
+    use: 'Give one call a deadline that also stops when its request is cancelled, and clear the timer when the work finishes first.',
+    param: { label: 'Timeout', min: 2, max: 4, value: 3 },
+    legend: [['sky', 'live signal'], ['blue', 'fetch'], ['ok', 'done'], ['dot-muted', 'timer cleared'], ['warn', 'wasted work'], ['bad', 'aborted']],
+    notice: {
+      quorin: [
+        'The deadline is linked to the request, so a client that leaves aborts the fetch at once, with the same reason.',
+        '<code>cancel()</code> in <code>finally</code> clears the timer without aborting anything.',
+        'The timer runs on quorin\'s clock, so tests can advance fake time instead of waiting.',
+      ],
+      naive: [
+        '<code>AbortSignal.timeout</code> only knows about time. It does not hear the client leave.',
+        'C keeps fetching for nobody until the timeout fires.',
+        'It reads the real clock, so a test has to wait the full timeout.',
+      ],
+    },
+    code(mode, t) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">async function</span> handle(request: Request) {',
+            `  <span class="k">const</span> deadline = timeoutSignal(<span class="n">${t}_000</span>, { signal: request.signal });`,
+            '  <span class="k">try</span> {',
+            '    <span class="k">return await</span> fetch(upstream, { signal: deadline.signal });',
+            '  } <span class="k">finally</span> {',
+            '    deadline.cancel(); <span class="c">// clears the timer, never aborts</span>',
+            '  }',
+            '}',
+          ]
+        : [
+            '<span class="k">async function</span> handle(request: Request) {',
+            `  <span class="k">const</span> signal = AbortSignal.timeout(<span class="n">${t}_000</span>); <span class="c">// not linked to the request</span>`,
+            '  <span class="k">return await</span> fetch(upstream, { signal });',
+            '}',
+          ];
+    },
+    hubs: () => [],
+    stat() {
+      let s = svgText(230, 40, 'request.signal', 'cap', 'middle') + svgText(360, 40, 'deadline', 'cap', 'middle') + svgText(490, 40, 'fetch', 'cap', 'middle');
+      SIGNAL_ROWS.forEach(([name, what], r) => {
+        s += svgText(20, signalY(r) - 4, name, 'cap-strong') + svgText(20, signalY(r) + 13, what, 'cap');
+      });
+      return s;
+    },
+    hud(h) {
+      let s = '';
+      for (let r = 0; r < SIGNAL_ROWS.length; r++) {
+        if (h['tm' + r]) s += svgText(360, signalY(r) + 30, h['tm' + r], 'cap', 'middle');
+        if (h['o' + r]) s += svgText(528, signalY(r) + 4, h['o' + r], 'cap-strong', 'start', `style="fill:var(--${h['c' + r] || 'ink'})"`);
+      }
+      s += svgText(700, 40, `t = ${h.t || 0}s`, 'cap-strong', 'end');
+      if (h.status) s += svgText(360, 326, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, t) {
+      const T = timeline();
+      const quorin = mode === 'quorin';
+      for (let r = 0; r < SIGNAL_ROWS.length; r++) {
+        T.set('req' + r, { x: 230, y: signalY(r), r: 11, fill: 'sky' });
+        T.set('dl' + r, { x: 360, y: signalY(r), r: 11, fill: 'sky' });
+        T.set('f' + r, { x: 490, y: signalY(r), r: 11, fill: 'blue' });
+        if (quorin) T.link('req' + r, 'dl' + r);
+        T.link('dl' + r, 'f' + r);
+        T.hud({ ['tm' + r]: `timer ${t}s`, ['o' + r]: '', ['c' + r]: 'ink' });
+      }
+      T.hud({ t: '0', status: '', tone: 'ink' });
+      T.push(700, quorin ? [1, 3] : [1, 2], quorin ? 'each request gets a deadline linked to its signal' : 'each fetch gets its own timeout signal, not linked to the request', 0);
+      const abort = (r) => ['dl', 'f'].forEach((p) => T.set(p + r, { fill: 'bad', broken: true }));
+      T.set('f0', { fill: 'ok' });
+      T.set('req0', { fill: 'ok' });
+      T.set('dl0', { fill: 'dot-muted' });
+      T.hud({ t: '1', tm0: quorin ? 'cleared' : 'still set', tm1: `timer ${t - 1}s`, tm2: `timer ${t - 1}s`, o0: quorin ? 'done, timer cleared' : 'done', c0: 'ok' });
+      T.push(800, quorin ? [5] : [2], quorin ? 'A finishes first, and cancel() clears its timer' : 'A finishes first', 1);
+      T.set('req2', { fill: 'bad', broken: true });
+      if (quorin) {
+        abort(2);
+        T.hud({ tm2: 'cleared', o2: 'aborted: client left', c2: 'bad' });
+        T.push(900, [1], 'C\'s client leaves. The deadline aborts with the same reason and the fetch stops at once', 1);
+      } else {
+        T.set('f2', { ring: 'warn' });
+        T.hud({ o2: 'client gone, still fetching', c2: 'warn' });
+        T.push(900, [2], 'C\'s client leaves, but nothing tells the fetch', 1);
+      }
+      abort(1);
+      T.hud({ t: String(t), tm1: 'fired', o1: `TimeoutError at ${t}s`, c1: 'bad' });
+      if (!quorin) {
+        abort(2);
+        T.set('f2', { ring: false });
+        T.hud({ tm0: 'fired anyway', tm2: 'fired', o2: `timed out, ${t - 1}s wasted`, c2: 'warn' });
+      }
+      T.push(900, quorin ? [1, 3] : [1, 2], quorin ? `B hits the ${t}s deadline and its fetch is aborted with a TimeoutError` : `B and C both time out at ${t}s`, t);
+      T.hud(quorin
+        ? { status: 'every fetch stopped as soon as nobody needed it', tone: 'ok' }
+        : { status: `C fetched for ${t - 1}s after its client left`, tone: 'bad' });
+      T.push(1400, quorin ? [5] : [1], quorin ? 'no timer was left running' : 'the timeout is the only way the fetch ever stops', '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- ValueMap ---------------- */
+  const VM_KEYS = ["{ sku: 'tee', size: 'M' }", "{ size: 'M', sku: 'tee' }", "{ sku: 'tee', size: 'M' }", "{ size: 'M', sku: 'tee' }"];
+  const valueMapScene = {
+    id: 'value-map',
+    name: 'ValueMap',
+    subpath: 'quorin/struct',
+    imports: ['ValueMap'],
+    doc: 'struct.md#' + slug('`ValueMap<K extends JsonValue, V>`'),
+    use: 'Use objects as map keys and find them by their contents, so two objects with the same fields are the same key.',
+    param: { label: 'Lookups', min: 1, max: 3, value: 2 },
+    legend: [['blue', 'key object'], ['ok', 'lookup hit'], ['bad', 'lookup missed'], ['lilac', 'stored price']],
+    notice: {
+      quorin: [
+        'Keys are compared by structure. Record field order does not matter, array order does.',
+        '<code>set</code> snapshots the key, so changing the original object later does not touch the map.',
+        'Keys must be JSON values. Anything else throws <code>UNSUPPORTED_VALUE</code>.',
+      ],
+      naive: [
+        'A native <code>Map</code> compares objects by identity, so a fresh object with the same fields never matches.',
+        'Setting it again adds a second entry for the same product.',
+      ],
+    },
+    code(mode) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> prices = <span class="k">new</span> ValueMap&lt;Sku, number&gt;();',
+            '<span class="k">const</span> key = { sku: <span class="s">\'tee\'</span>, size: <span class="s">\'M\'</span> };',
+            'prices.set(key, <span class="n">20</span>);',
+            '',
+            'prices.get({ size: <span class="s">\'M\'</span>, sku: <span class="s">\'tee\'</span> }); <span class="c">// 20</span>',
+            'key.size = <span class="s">\'L\'</span>; <span class="c">// the map kept its own copy</span>',
+          ]
+        : [
+            '<span class="k">const</span> prices = <span class="k">new</span> Map&lt;Sku, number&gt;();',
+            '<span class="k">const</span> key = { sku: <span class="s">\'tee\'</span>, size: <span class="s">\'M\'</span> };',
+            'prices.set(key, <span class="n">20</span>);',
+            '',
+            'prices.get({ size: <span class="s">\'M\'</span>, sku: <span class="s">\'tee\'</span> }); <span class="c">// undefined</span>',
+            'prices.set({ size: <span class="s">\'M\'</span>, sku: <span class="s">\'tee\'</span> }, <span class="n">20</span>); <span class="c">// a second entry</span>',
+          ];
+    },
+    hubs: () => [{ x: 470, y: 170, r: 34, fill: 'hub' }],
+    stat(mode, n) {
+      let s = svgText(470, 228, mode === 'quorin' ? 'ValueMap' : 'Map', 'cap-strong', 'middle') + svgText(630, 40, 'entries', 'cap', 'middle');
+      for (let i = 0; i <= n; i++) s += svgText(20, col(i, n + 1, 60) - 18, i === 0 ? 'set' : `get #${i}`, 'cap');
+      return s;
+    },
+    hud(h, mode, n) {
+      let s = '';
+      for (let i = 0; i <= n; i++) {
+        const text = i === 0 && h.mutated ? "{ sku: 'tee', size: 'L' }" : VM_KEYS[i];
+        s += svgText(20, col(i, n + 1, 60) + 4, text, 'cap-strong', 'start', i === 0 && h.mutated ? 'style="fill:var(--warn)"' : '');
+      }
+      if (h.canon) s += svgText(470, 112, h.canon, 'cap', 'middle');
+      s += svgText(630, 300, `size ${h.size || 0}`, 'cap-strong', 'middle');
+      if (h.status) s += svgText(360, 330, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, n) {
+      const T = timeline();
+      const quorin = mode === 'quorin';
+      const home = (i) => ({ x: 262, y: col(i, n + 1, 60) });
+      const hub = { x: 470, y: 170 };
+      const entry = (i) => ({ x: 630, y: 80 + i * 44 });
+      for (let i = 0; i <= n; i++) T.set('k' + i, Object.assign(home(i), { r: 11, fill: 'blue' }));
+      T.hud({ size: '0', canon: '', status: '', tone: 'ink', mutated: '' });
+      T.push(500, [1], `one price, then ${n} lookup${n === 1 ? '' : 's'} with fresh objects`, '');
+      T.set('k0', Object.assign({}, hub));
+      T.set('e0', Object.assign(entry(0), { sx: hub.x, sy: hub.y, r: 13, fill: 'lilac', label: '20' }));
+      T.hud({ size: '1', canon: quorin ? 'stored as size=M, sku=tee' : 'stored under this object' });
+      T.push(800, [2], quorin ? 'set copies the key and stores it by its contents' : 'set stores the price under this exact object', '');
+      T.set('k0', home(0));
+      let size = 1;
+      for (let i = 1; i <= n; i++) {
+        T.set('k' + i, Object.assign({}, hub));
+        T.push(650, [4], `get #${i} looks up ${VM_KEYS[i]}`, '');
+        if (quorin) {
+          T.set('k' + i, Object.assign(home(i), { fill: 'ok', label: '20' }));
+          T.push(650, [4], i === 1 ? 'same fields in another order: a hit, 20' : 'a different object with the same fields: a hit, 20', '');
+        } else {
+          T.set('k' + i, Object.assign(home(i), { fill: 'bad', broken: true }));
+          T.set('e' + size, Object.assign(entry(size), { sx: hub.x, sy: hub.y, r: 13, fill: 'lilac', label: '20' }));
+          size++;
+          T.hud({ size: String(size) });
+          T.push(650, [4, 5], 'a different object, so get misses and the price is stored again', '');
+        }
+      }
+      if (quorin) {
+        T.hud({ mutated: '1' });
+        T.push(800, [5], 'changing the original key afterwards does not change the stored copy', '');
+        T.hud({ status: `one entry, and all ${n} lookup${n === 1 ? '' : 's'} hit`, tone: 'ok' });
+      } else {
+        T.hud({ status: `${n} miss${n === 1 ? '' : 'es'} and ${size} entries for the same product`, tone: 'bad' });
+      }
+      T.push(1400, quorin ? [4] : [5], quorin ? 'keys match by what they contain' : 'Map keys match by identity, not by contents', '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- trySafe ---------------- */
+  const SAFE_CALLS = [['ok', '200'], ['err', 'net'], ['defect', 'bug'], ['ok', '200']];
+  const trySafeScene = {
+    id: 'try-safe',
+    name: 'trySafe',
+    subpath: 'quorin/result',
+    imports: ['trySafe'],
+    doc: 'result.md#' + slug('`trySafe(fn, options?)` and `trySafeSync(fn, options?)`'),
+    use: 'Turn a thrown error into a typed result you can branch on, while real bugs still throw so they cannot hide.',
+    param: { label: 'Calls', min: 2, max: 4, value: 4 },
+    legend: [['blue', 'call'], ['ok', 'result.ok'], ['bad', 'result.error'], ['lilac', 'defect, rethrown'], ['dot-muted', 'null, cause lost']],
+    notice: {
+      quorin: [
+        'A thrown network error becomes a plain value on the error track. Nothing crashes and the type says what it can be.',
+        'Narrow with <code>result.ok</code>. The error is typed by <code>mapError</code>.',
+        'A <code>DefectError</code> is a bug, not a failure, so it is rethrown instead of being handled quietly.',
+      ],
+      naive: [
+        '<code>catch { return null }</code> turns every failure into the same <code>null</code>.',
+        'The network error and the bug look identical, and the cause is gone.',
+      ],
+    },
+    code(mode) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> result = <span class="k">await</span> trySafe(() =&gt; fetchUser(id), {',
+            '  mapError: (raw) =&gt; ({ kind: <span class="s">\'network\'</span>, cause: raw }),',
+            '});',
+            '<span class="k">if</span> (result.ok) render(result.data);',
+            '<span class="k">else</span> showRetry(result.error.kind); <span class="c">// typed error</span>',
+            '<span class="c">// a DefectError is rethrown, so bugs still crash loudly</span>',
+          ]
+        : [
+            '<span class="k">async function</span> load(id: string) {',
+            '  <span class="k">try</span> { <span class="k">return await</span> fetchUser(id); }',
+            '  <span class="k">catch</span> { <span class="k">return</span> <span class="k">null</span>; } <span class="c">// every failure looks the same</span>',
+            '}',
+            '<span class="k">const</span> user = <span class="k">await</span> load(id);',
+            '<span class="k">if</span> (user) render(user);',
+          ];
+    },
+    hubs: () => [{ x: 230, y: 170, r: 26, fill: 'hub' }],
+    stat(mode) {
+      let s = svgText(230, 214, mode === 'quorin' ? 'trySafe' : 'try / catch', 'cap-strong', 'middle');
+      if (mode === 'quorin') {
+        s += `<line x1="300" y1="100" x2="690" y2="100" style="stroke:var(--ok)" stroke-width="2"/><line x1="300" y1="240" x2="690" y2="240" style="stroke:var(--bad)" stroke-width="2"/>`;
+        s += svgText(300, 86, 'result.ok → result.data', 'cap') + svgText(300, 268, 'else → result.error', 'cap') + svgText(690, 36, 'rethrown', 'cap', 'end');
+      } else {
+        s += `<line x1="300" y1="170" x2="690" y2="170" style="stroke:var(--line)" stroke-width="2"/>` + svgText(300, 150, 'user, or null', 'cap');
+      }
+      return s;
+    },
+    hud(h) {
+      return h.status ? svgText(360, 326, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`) : '';
+    },
+    build(mode, n) {
+      const T = timeline();
+      const quorin = mode === 'quorin';
+      const calls = SAFE_CALLS.slice(0, n);
+      const hub = { x: 230, y: 170 };
+      calls.forEach(([, label], i) => T.set('c' + i, { x: 70, y: col(i, n, 50), r: 13, fill: 'blue', label }));
+      T.hud({ status: '', tone: 'ink' });
+      T.push(500, [quorin ? 0 : 4], `${n} calls: ${calls.map(([, l]) => l).join(', ')}`, '');
+      const slots = { ok: 0, err: 0, line: 0 };
+      calls.forEach(([kind, label], i) => {
+        T.set('c' + i, Object.assign({}, hub));
+        T.push(550, quorin ? [0] : [1], `call ${i + 1} runs`, '');
+        if (!quorin) {
+          const ok = kind === 'ok';
+          T.set('c' + i, { x: 340 + slots.line++ * 70, y: 170, fill: ok ? 'ok' : 'dot-muted', label: ok ? label : 'null' });
+          T.push(650, ok ? [5] : [2], ok ? 'it returns a user' : `it throws (${label === 'bug' ? 'a bug' : 'a network error'}) and becomes null`, '');
+          return;
+        }
+        if (kind === 'ok') {
+          T.set('c' + i, { x: 360 + slots.ok++ * 70, y: 100, fill: 'ok' });
+          T.push(650, [3], 'it returns, so the value goes on the ok track', '');
+        } else if (kind === 'err') {
+          T.set('c' + i, { x: 360 + slots.err++ * 70, y: 240, fill: 'bad' });
+          T.push(650, [1, 4], 'fetch throws a TypeError, so it becomes { kind: \'network\' } on the error track', '');
+        } else {
+          T.set('c' + i, { x: 650, y: 52, fill: 'lilac' });
+          T.push(650, [5], 'a DefectError is a bug, so trySafe rethrows it', '');
+        }
+      });
+      const failures = calls.filter(([k]) => k !== 'ok').length;
+      const hasBug = calls.some(([k]) => k === 'defect');
+      T.hud(quorin
+        ? { status: hasBug ? 'failures are typed values, and the bug still surfaced' : 'the failure is a typed value you can branch on', tone: 'ok' }
+        : { status: failures > 1 ? 'a network error and a bug both became null' : 'the failure became null, with no cause', tone: 'bad' });
+      T.push(1400, quorin ? [3, 4] : [5], quorin ? 'every outcome has its own track' : 'the caller cannot tell what went wrong', '');
+      return T.frames;
+    },
+  };
+
   /* ---------------- Deque ---------------- */
   const CENTER = { x: 360, y: 178 };
   const ringRadius = (cap) => (cap > 8 ? 124 : 92);
@@ -1808,6 +2521,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'deque',
     name: 'Deque',
     subpath: 'quorin/struct',
+    imports: ['Deque'],
     doc: 'struct.md#' + slug('Deque<T>'),
     use: 'A queue where taking from the front costs the same as adding to the back, at any size.',
     param: { label: 'Shifts', min: 1, max: 4, value: 3 },
@@ -1973,14 +2687,212 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     },
   };
 
-  const SCENES = [channelScene, selectScene, groupScene, mutexScene, limitScene, rateScene, flightScene, resilienceScene, cacheScene, dequeScene];
+  const SCENES = [channelScene, selectScene, groupScene, mutexScene, rwScene, keyedScene, limitScene, rateScene, flightScene, mapScene, resilienceScene, timeoutScene, trySafeScene, cacheScene, valueMapScene, dequeScene];
   const BY_ID = Object.fromEntries(SCENES.map((s) => [s.id, s]));
   const GROUPS = [
-    ['Concurrency', [channelScene, selectScene, groupScene, mutexScene]],
-    ['Async limits', [limitScene, rateScene, flightScene]],
+    ['Concurrency', [channelScene, selectScene, groupScene, mutexScene, rwScene, keyedScene]],
+    ['Async limits', [limitScene, rateScene, flightScene, mapScene]],
     ['Resilience', [resilienceScene]],
-    ['Data', [cacheScene, dequeScene]],
+    ['Signals & results', [timeoutScene, trySafeScene]],
+    ['Data', [cacheScene, valueMapScene, dequeScene]],
   ];
+  /* ---------------- Playground ---------------- */
+  // Each preset is raw JSON text, so keys such as "__proto__" stay own properties when parsed.
+  const bytesOut = (b) => `Uint8Array [${Array.from(b).join(', ')}]`;
+  const PLAYGROUND = [
+    {
+      id: 'object',
+      name: 'quorin/object',
+      subpath: 'quorin/object',
+      doc: 'object.md',
+      use: 'Read, write, merge and serialize plain JSON objects without walking into prototypes or accessors.',
+      fns: [
+        {
+          name: 'deepMerge',
+          sig: 'deepMerge(input[0], input[1])',
+          call: (q, [left, right]) => q.deepMerge(left, right),
+          presets: {
+            'Config override': '[\n  { "db": { "host": "localhost", "port": 5432 }, "flags": ["a"] },\n  { "db": { "port": 6543 }, "flags": ["b"] }\n]',
+            'null replaces a record': '[\n  { "cache": { "ttlMs": 60000 } },\n  { "cache": null }\n]',
+            'Prototype pollution': '[\n  { "safe": true },\n  { "__proto__": { "admin": true } }\n]',
+          },
+        },
+        {
+          name: 'getPath',
+          sig: 'getPath(input.target, input.path, input.fallback)',
+          call: (q, { target, path, fallback }) => q.getPath(target, path, fallback),
+          presets: {
+            'Read nested': '{\n  "target": { "server": { "port": 8080 }, "tags": ["a"] },\n  "path": "server.port"\n}',
+            'Missing uses fallback': '{\n  "target": { "server": {} },\n  "path": "server.timeout",\n  "fallback": 30\n}',
+            'Array segment': '{\n  "target": { "tags": ["a", "b"] },\n  "path": ["tags", 1]\n}',
+            'Forbidden key': '{\n  "target": {},\n  "path": "constructor",\n  "fallback": "never reached"\n}',
+          },
+        },
+        {
+          name: 'setPath',
+          sig: 'setPath(input.target, input.path, input.value); return input.target',
+          call: (q, { target, path, value }) => { q.setPath(target, path, value); return target; },
+          presets: {
+            'Create branches': '{\n  "target": {},\n  "path": ["theme", "colors", 0],\n  "value": "#fff"\n}',
+            'Primitive branch is kept': '{\n  "target": { "theme": "dark" },\n  "path": ["theme", "accent"],\n  "value": "#1f4dff"\n}',
+            'Forbidden key': '{\n  "target": {},\n  "path": ["__proto__", "admin"],\n  "value": true\n}',
+          },
+        },
+        {
+          name: 'stableStringify',
+          sig: 'stableStringify(input)',
+          call: (q, value) => q.stableStringify(value),
+          presets: {
+            'Sorted keys': '{ "b": 1, "a": [2, { "d": 1, "c": 0 }] }',
+            'Cache key': '{ "userId": 7, "filters": { "status": "open", "sort": "new" } }',
+          },
+        },
+      ],
+    },
+    {
+      id: 'state',
+      name: 'quorin/state',
+      subpath: 'quorin/state',
+      doc: 'state.md',
+      use: 'Redact secrets before logging, compare deeply, and clone without running anyone\'s code.',
+      fns: [
+        {
+          name: 'redact',
+          sig: 'redact(input)',
+          call: (q, value) => q.redact(value),
+          presets: {
+            'Request log': '{\n  "user": "ada",\n  "password": "hunter2",\n  "headers": { "Authorization": "Bearer x", "accept": "json" }\n}',
+            'Nested keys': '{\n  "stripe": { "apiKey": "sk_live_123", "secretToken": "abc" },\n  "cookie": "sid=1",\n  "note": "token=abc inside a string stays"\n}',
+          },
+        },
+        {
+          name: 'isEqual',
+          sig: 'isEqual(input[0], input[1])',
+          call: (q, [a, b]) => q.isEqual(a, b),
+          presets: {
+            'Key order ignored': '[\n  { "a": 1, "b": [1, 2] },\n  { "b": [1, 2], "a": 1 }\n]',
+            'Array order matters': '[\n  [1, 2, 3],\n  [3, 2, 1]\n]',
+          },
+        },
+        {
+          name: 'safeClone',
+          sig: 'const copy = safeClone(input)',
+          call: (q, value) => { const copy = q.safeClone(value); return { copy, sameObject: copy === value, sameContents: q.isEqual(copy, value) }; },
+          presets: {
+            'Deep copy': '{ "user": { "name": "ada", "roles": ["admin"] } }',
+          },
+        },
+      ],
+    },
+    {
+      id: 'bytes',
+      name: 'quorin/bytes',
+      subpath: 'quorin/bytes',
+      doc: 'bytes.md',
+      use: 'Convert between text, hex and base64 with strict decoders, and hash bytes quickly.',
+      fns: [
+        {
+          name: 'toBase64',
+          imports: ['toBase64', 'toHex', 'fastHash', 'stringToBytes'],
+          sig: 'const bytes = stringToBytes(input.text)',
+          call: (q, { text, alphabet, omitPadding }) => {
+            const bytes = q.stringToBytes(text);
+            return { base64: q.toBase64(bytes, { alphabet, omitPadding }), hex: q.toHex(bytes), fastHash: q.fastHash(bytes) };
+          },
+          presets: {
+            'Plain text': '{ "text": "hello world" }',
+            'URL-safe, no padding': '{ "text": "quorin?id=ü", "alphabet": "base64url", "omitPadding": true }',
+          },
+        },
+        {
+          name: 'fromBase64',
+          imports: ['fromBase64', 'bytesToString'],
+          sig: 'fromBase64(input.text, input.options)',
+          raw: true,
+          call: (q, { text, options }) => {
+            const bytes = q.fromBase64(text, options);
+            return `${bytesOut(bytes)}\n${JSON.stringify(q.bytesToString(bytes, { fatal: false }))}`;
+          },
+          presets: {
+            'Padded': '{ "text": "aGk=" }',
+            'Optional padding': '{ "text": "aGk", "options": { "padding": "optional" } }',
+            'Space is rejected': '{ "text": "aG k" }',
+          },
+        },
+        {
+          name: 'fromHex',
+          imports: ['fromHex'],
+          sig: 'fromHex(input)',
+          raw: true,
+          call: (q, text) => bytesOut(q.fromHex(text)),
+          presets: {
+            'Either case': '"68656C6c6f"',
+            '0x prefix is rejected': '"0x68656c6c6f"',
+          },
+        },
+      ],
+    },
+    {
+      id: 'struct',
+      name: 'quorin/struct',
+      subpath: 'quorin/struct',
+      doc: 'struct.md',
+      use: 'Try ValueMap and Multimap, the maps that native Map does not cover.',
+      fns: [
+        {
+          name: 'ValueMap',
+          sig: 'new ValueMap(); set each [key, value], then get(input.get)',
+          call: (q, { set, get }) => {
+            const map = new q.ValueMap();
+            for (const [key, value] of set) map.set(key, value);
+            return { size: map.size, get: map.get(get) ?? null };
+          },
+          presets: {
+            'Key order ignored': '{\n  "set": [[{ "sku": "tee", "size": "M" }, 20]],\n  "get": { "size": "M", "sku": "tee" }\n}',
+            'Same key twice': '{\n  "set": [[{ "id": 1 }, "first"], [{ "id": 1 }, "second"]],\n  "get": { "id": 1 }\n}',
+            'Array order matters': '{\n  "set": [[[1, 2], "a"]],\n  "get": [2, 1]\n}',
+          },
+        },
+        {
+          name: 'Multimap',
+          sig: 'new Multimap(); add each [key, value], then get(input.get)',
+          call: (q, { add, get }) => {
+            const map = new q.Multimap();
+            for (const [key, value] of add) map.add(key, value);
+            return { size: map.size, valueCount: map.valueCount, get: map.get(get) };
+          },
+          presets: {
+            'Tags per post': '{\n  "add": [["post-1", "ts"], ["post-1", "esm"], ["post-2", "ts"]],\n  "get": "post-1"\n}',
+            'Duplicates kept': '{\n  "add": [["k", "x"], ["k", "x"]],\n  "get": "k"\n}',
+            'Missing key': '{\n  "add": [],\n  "get": "nothing"\n}',
+          },
+        },
+      ],
+    },
+  ];
+  const TRY_BY_ID = Object.fromEntries(PLAYGROUND.map((p) => [p.id, p]));
+  const NAV_GROUPS = GROUPS.concat([['Playground', PLAYGROUND]]);
+
+  const ORDER = NAV_GROUPS.flatMap(([label, list]) => list.map((page) => ({ id: page.id, name: page.name, label })));
+  const OVERVIEW_LINK = { id: 'overview', name: 'Overview', label: 'Back to start' };
+  function neighbors(id) {
+    const i = ORDER.findIndex((o) => o.id === id);
+    return { prev: ORDER[i - 1] || OVERVIEW_LINK, next: ORDER[i + 1] || OVERVIEW_LINK };
+  }
+  const pagerHtml = (id) => {
+    const { prev, next } = neighbors(id);
+    return `<nav class="pager" aria-label="More pages">
+          <a class="prev" href="#${prev.id}" rel="prev"><small>Previous · ${esc(prev.label)}</small><code>${esc(prev.name)}</code></a>
+          <a class="next" href="#${next.id}" rel="next"><small>Next · ${esc(next.label)}</small><code>${esc(next.name)}</code></a>
+        </nav>`;
+  };
+  const pageKey = (id) => (e) => {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || palette.open || isTyping(e.target)) return;
+    if (e.key !== '[' && e.key !== ']') return;
+    e.preventDefault();
+    const { prev, next } = neighbors(id);
+    location.hash = '#' + (e.key === '[' ? prev : next).id;
+  };
 
   /* ---------------- Renderer ---------------- */
   function interpolate(a, b, k) {
@@ -2071,12 +2983,12 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     };
   }
 
-  function createPlayer(root, scene) {
-    let mode = 'quorin';
-    let param = scene.param.value;
+  function createPlayer(root, scene, state) {
+    let mode = state.mode;
+    let param = state.param;
     let frames = [];
     let index = 0;
-    let playing = !reduceMotion;
+    let playing = !reduceMotion && !state.step;
     const saved = Number(store.get('quorin.speed'));
     let speed = [0.5, 1, 2].includes(saved) ? saved : 1;
     let anim = null;
@@ -2085,6 +2997,12 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
 
     const stageHost = root.querySelector('[data-stage]');
     const codeEl = root.querySelector('[data-code]');
+    const importsEl = root.querySelector('[data-imports]');
+    const copyCodeBtn = root.querySelector('[data-copy-code]');
+    copyCodeBtn.addEventListener('click', () => {
+      const body = scene.code(mode, param).map(plain).join('\n');
+      copyText(copyCodeBtn, mode === 'quorin' ? `${plain(importsEl.innerHTML)}\n\n${body}` : body, 'Copy');
+    });
     const logEl = root.querySelector('[data-log]');
     const noticeEl = root.querySelector('[data-notice]');
     const playBtn = root.querySelector('[data-play]');
@@ -2099,6 +3017,10 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       stageHost.innerHTML = stageSvg(scene, mode, param, frames[0]);
       const code = scene.code(mode, param);
       codeEl.innerHTML = code.map((l, i) => `<span class="ln" data-l="${i}">${l || ' '}</span>`).join('');
+      importsEl.className = 'imports ' + mode;
+      importsEl.innerHTML = mode === 'quorin'
+        ? `<span class="k">import</span> { ${scene.imports.join(', ')} } <span class="k">from</span> <span class="sub" title="Also exported from 'quorin'">'${esc(scene.subpath)}'</span>;`
+        : '// nothing to import: written by hand';
       noticeEl.className = 'notice ' + mode;
       noticeEl.innerHTML = scene.notice[mode].map((n) => `<li>${n}</li>`).join('');
       syncPanels();
@@ -2206,11 +3128,13 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     const speedSel = root.querySelector('[data-speed]');
     speedSel.value = String(speed);
     speedSel.addEventListener('change', (e) => { speed = Number(e.target.value); store.set('quorin.speed', String(speed)); });
+    const pageKeys = pageKey(scene.id);
     const onKey = (e) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || palette.open || isTyping(e.target)) return;
       if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); root.querySelector('[data-step]').click(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); root.querySelector('[data-back]').click(); }
+      else pageKeys(e);
     };
     document.addEventListener('keydown', onKey);
     paramInput.addEventListener('input', () => {
@@ -2220,8 +3144,17 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       rebuild();
       if (playing) advance();
     });
+    const linkBtn = root.querySelector('[data-link]');
+    linkBtn.addEventListener('click', () => copyText(linkBtn, stepLink(scene, mode, param, index + 1), 'Copy link'));
 
+    paramInput.value = String(param);
+    paramOut.textContent = String(param);
     rebuild();
+    if (state.step) {
+      index = Math.min(state.step, frames.length) - 1;
+      drawAt(frames[index], frames[index], 1);
+      syncPanels();
+    }
     if (playing) advance();
     return { destroy() { stop(); document.removeEventListener('keydown', onKey); } };
   }
@@ -2235,7 +3168,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   function renderNav(route) {
     const item = (s) => `<a href="#${s.id}" ${route === s.id ? 'aria-current="page"' : ''}><code>${esc(s.name)}</code></a>`;
     nav.innerHTML = `<div class="nav-group"><a href="#overview" ${route === 'overview' ? 'aria-current="page"' : ''}>Overview</a></div>`
-      + GROUPS.map(([label, list]) => `<div class="nav-group"><div class="nav-label">${esc(label)}</div>${list.map(item).join('')}</div>`).join('');
+      + NAV_GROUPS.map(([label, list]) => `<div class="nav-group"><div class="nav-label">${esc(label)}</div>${list.map(item).join('')}</div>`).join('');
   }
 
   const POOL_CODE = [
@@ -2340,7 +3273,6 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       ['A cross is cancelled or failed', 'The work stopped. Red means it was lost or failed.', '<circle cx="28" cy="18" r="10" style="fill:var(--bad)"/><path d="M23.5 13.5 L32.5 22.5 M32.5 13.5 L23.5 22.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>'],
     ];
     const stats = [['0', 'runtime dependencies'], ['10', 'subpath modules'], ['5.8+', 'TypeScript'], ['22.19+', 'Node.js']];
-    const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
     main.innerHTML = `
       <div class="page">
         <div class="bento">
@@ -2358,8 +3290,9 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
           </section>
           <section class="tile tile-install" aria-label="Install">
             <span class="tile-label">Install</span>
-            <div class="cmdline"><span class="prompt" aria-hidden="true">$</span><span id="install-text">npm install quorin</span></div>
-            <p>One ESM build with types. <code>require()</code> works too.</p>
+            <div class="pm" role="tablist" aria-label="Package manager">${PMS.map(([name]) => `<button type="button" role="tab" id="pm-${name}" aria-controls="install-cmd" data-pm="${name}">${name}</button>`).join('')}</div>
+            <div class="cmdline" id="install-cmd" role="tabpanel"><span class="prompt" aria-hidden="true">$</span><span id="install-text"></span></div>
+            <p id="install-note"></p>
             <button class="btn-on-solid" id="copy-install" type="button">Copy</button>
           </section>
           <a class="tile tile-live" href="#select" aria-label="Open the select visualizer">
@@ -2391,6 +3324,11 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
             <h3 class="group-title">${esc(label)}</h3>
             <div class="cards">${list.map((s) => `<a class="card reveal" href="#${s.id}" data-card="${s.id}"><span data-preview="${s.id}"></span><h3>${esc(s.name)}</h3><p>${esc(s.use)}</p></a>`).join('')}</div>`).join('')}
         </section>
+        <section class="section">
+          <h2>Try it in the browser</h2>
+          <p>The pure functions have nothing to animate, so these pages run the real library instead. Edit the input and watch the output.</p>
+          <div class="cards">${PLAYGROUND.map((p) => `<a class="card card-try reveal" href="#${p.id}"><h3>${esc(p.name)}</h3><p>${esc(p.use)}</p><span class="try-fns">${p.fns.map((f) => `<code>${esc(f.name)}</code>`).join('')}</span></a>`).join('')}</div>
+        </section>
       </div>`;
     const minis = [];
     main.querySelectorAll('[data-card]').forEach((card) => {
@@ -2411,8 +3349,35 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       observer = new IntersectionObserver((entries) => entries.forEach((en) => (en.isIntersecting ? live.start() : live.stop())));
       observer.observe(liveTile);
     } else live.start();
+    const pmTabs = main.querySelector('.pm');
+    const installText = document.getElementById('install-text');
+    function selectPm(name, focus) {
+      const [pm, command, note] = PMS.find(([n]) => n === name) || PMS[0];
+      for (const tab of pmTabs.children) {
+        const on = tab.dataset.pm === pm;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+        if (on && focus) tab.focus();
+      }
+      installText.textContent = command;
+      document.getElementById('install-cmd').setAttribute('aria-labelledby', `pm-${pm}`);
+      document.getElementById('install-note').innerHTML = note;
+      store.set('quorin:pm', pm);
+    }
+    pmTabs.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-pm]');
+      if (tab) selectPm(tab.dataset.pm);
+    });
+    pmTabs.addEventListener('keydown', (e) => {
+      const i = PMS.findIndex(([n]) => n === e.target.dataset.pm);
+      const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: PMS.length - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      selectPm(PMS[(to + PMS.length) % PMS.length][0], true);
+    });
+    selectPm(store.get('quorin:pm') || 'npm');
     const copyInstall = document.getElementById('copy-install');
-    copyInstall.addEventListener('click', () => copyText(copyInstall, 'npm install quorin', 'Copy'));
+    copyInstall.addEventListener('click', () => copyText(copyInstall, installText.textContent, 'Copy'));
     const copyCode = document.getElementById('copy-code');
     copyCode.addEventListener('click', () => copyText(copyCode, POOL_CODE.map(plain).join('\n'), 'Copy'));
     renderDownloads(main.querySelector('[data-dl]'));
@@ -2425,7 +3390,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   const palInput = document.getElementById('palette-input');
   const palList = document.getElementById('palette-list');
   const ITEMS = [{ id: 'overview', name: 'Overview', use: 'What quorin is and how to read the animations.', group: '' }]
-    .concat(GROUPS.flatMap(([group, list]) => list.map((s) => ({ id: s.id, name: s.name, use: s.use, group }))));
+    .concat(NAV_GROUPS.flatMap(([group, list]) => list.map((s) => ({ id: s.id, name: s.name, use: s.use, group }))));
   let palActive = 0;
   let palMatches = ITEMS;
 
@@ -2483,7 +3448,131 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     }
   });
 
-  function vizPage(scene) {
+  function tryPage(page) {
+    let alive = true;
+    let fn = page.fns[0];
+    let lib = null;
+    let timer = 0;
+    main.innerHTML = `
+      <div class="page">
+        <header class="viz-head">
+          <span class="eyebrow">Try it · ${esc(page.subpath)}</span>
+          <h1>${esc(page.name)}</h1>
+          <p>${esc(page.use)}</p>
+        </header>
+        <div class="toolbar">
+          <span class="try-status" data-status><i></i><span>Loading quorin@${QUORIN_VERSION} from jsDelivr</span></span>
+          <a class="doclink" href="${DOCS}${page.doc}">Read the docs</a>
+        </div>
+        <section class="try" aria-label="Playground">
+          <div class="try-top">
+            <div class="fn-tabs" role="tablist" aria-label="Function">${page.fns.map((f, i) => `<button type="button" role="tab" id="fn-${page.id}-${i}" data-fn="${i}">${esc(f.name)}</button>`).join('')}</div>
+            <div class="presets" data-presets></div>
+          </div>
+          <div class="try-body" role="tabpanel">
+            <div class="try-in">
+              <label class="tile-label" for="try-input-${page.id}">Input (JSON)</label>
+              <textarea id="try-input-${page.id}" data-input spellcheck="false" autocomplete="off"></textarea>
+            </div>
+            <div class="try-out">
+              <span class="tile-label">Output</span>
+              <pre class="try-result" data-out aria-live="polite"></pre>
+              <span class="try-meta" data-meta></span>
+            </div>
+          </div>
+          <div class="try-code">
+            <div class="imports" data-imports></div>
+            <pre class="code" data-call></pre>
+          </div>
+        </section>
+        ${pagerHtml(page.id)}
+      </div>`;
+    const root = main.firstElementChild;
+    const input = root.querySelector('[data-input]');
+    const out = root.querySelector('[data-out]');
+    const meta = root.querySelector('[data-meta]');
+    const status = root.querySelector('[data-status]');
+    const show = (text, failed, note = '') => {
+      out.textContent = text;
+      out.classList.toggle('failed', failed);
+      meta.textContent = note;
+    };
+    function run() {
+      if (!lib) return;
+      let value;
+      try { value = JSON.parse(input.value); } catch (error) { show(`Input is not valid JSON: ${error.message}`, true); return; }
+      const start = performance.now();
+      try {
+        const result = fn.call(lib, value);
+        const text = fn.raw ? result : result === undefined ? 'undefined' : JSON.stringify(result, null, 2);
+        show(text, false, `Returned in ${(performance.now() - start).toFixed(2)} ms`);
+      } catch (error) {
+        show(`${error.name}${error.code ? ` [${error.code}]` : ''}\n${error.message}`, true, 'Threw. quorin refused the input.');
+      }
+    }
+    function loadPreset(name) {
+      input.value = fn.presets[name];
+      root.querySelectorAll('[data-preset]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === name)));
+      run();
+    }
+    function selectFn(i, focus) {
+      fn = page.fns[i];
+      root.querySelectorAll('[data-fn]').forEach((b) => {
+        const on = Number(b.dataset.fn) === i;
+        b.setAttribute('aria-selected', String(on));
+        b.tabIndex = on ? 0 : -1;
+        if (on && focus) b.focus();
+      });
+      root.querySelector('[role="tabpanel"]').setAttribute('aria-labelledby', `fn-${page.id}-${i}`);
+      root.querySelector('[data-presets]').innerHTML = Object.keys(fn.presets).map((name) => `<button type="button" data-preset="${esc(name)}" aria-pressed="false">${esc(name)}</button>`).join('');
+      root.querySelector('[data-imports]').innerHTML = `<span class="k">import</span> { ${(fn.imports || [fn.name]).join(', ')} } <span class="k">from</span> <span class="sub">'${esc(page.subpath)}'</span>;`;
+      root.querySelector('[data-call]').textContent = fn.sig;
+      loadPreset(Object.keys(fn.presets)[0]);
+    }
+    const tabs = root.querySelector('.fn-tabs');
+    tabs.addEventListener('click', (e) => { const b = e.target.closest('[data-fn]'); if (b) selectFn(Number(b.dataset.fn)); });
+    tabs.addEventListener('keydown', (e) => {
+      const i = Number(e.target.dataset.fn);
+      const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: page.fns.length - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      selectFn((to + page.fns.length) % page.fns.length, true);
+    });
+    root.querySelector('[data-presets]').addEventListener('click', (e) => { const b = e.target.closest('[data-preset]'); if (b) loadPreset(b.dataset.preset); });
+    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 180); });
+    const onKey = pageKey(page.id);
+    document.addEventListener('keydown', onKey);
+    selectFn(0);
+    show('Loading quorin…', false);
+    loadQuorin().then((mod) => {
+      if (!alive) return;
+      lib = mod;
+      status.classList.add('ready');
+      status.lastElementChild.textContent = `Running quorin@${QUORIN_VERSION}`;
+      run();
+    }, () => {
+      if (!alive) return;
+      status.classList.add('failed');
+      status.lastElementChild.textContent = 'Could not load quorin from jsDelivr';
+      show('The library could not be loaded, so nothing ran. The call below still shows how to use it, and the docs have the full contract.', true);
+    });
+    return { destroy() { alive = false; clearTimeout(timer); document.removeEventListener('keydown', onKey); } };
+  }
+
+  // Deep links: #channel?mode=naive&capacity=0&step=7. Unknown or out-of-range values fall back to the defaults.
+  const paramKey = (scene) => scene.param.label.split(' ')[0].toLowerCase();
+  function linkState(scene, params) {
+    const mode = params.get('mode') === 'naive' ? 'naive' : 'quorin';
+    const p = Number(params.get(paramKey(scene)));
+    const param = params.has(paramKey(scene)) && Number.isInteger(p) && p >= scene.param.min && p <= scene.param.max ? p : scene.param.value;
+    const step = Number(params.get('step'));
+    return { mode, param, step: Number.isInteger(step) && step >= 1 ? step : 0 };
+  }
+  function stepLink(scene, mode, param, step) {
+    return `${location.origin}${location.pathname}#${scene.id}?mode=${mode}&${paramKey(scene)}=${param}&step=${step}`;
+  }
+
+  function vizPage(scene, state) {
     main.innerHTML = `
       <div class="page">
         <header class="viz-head">
@@ -2500,12 +3589,13 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
         </div>
         <div class="stage-card">
           <div data-stage></div>
-          <div class="legend-row">${scene.legend.map(([c, l]) => `<span><i style="background:var(--${c})"></i>${esc(l)}</span>`).join('')}<span class="keys"><kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> step</span></div>
+          <div class="legend-row">${scene.legend.map(([c, l]) => `<span><i style="background:var(--${c})"></i>${esc(l)}</span>`).join('')}<span class="keys"><kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> step <kbd>[</kbd><kbd>]</kbd> page</span></div>
           <div class="controls">
             <button class="btn" type="button" data-play aria-pressed="false">Play</button>
             <button class="btn" type="button" data-back aria-label="Step back">Back</button>
             <button class="btn" type="button" data-step aria-label="Step forward">Step</button>
             <button class="btn" type="button" data-reset>Reset</button>
+            <button class="btn" type="button" data-link>Copy link</button>
             <span class="progress" data-progress></span>
             <span class="spacer"></span>
             <label for="param-${scene.id}">${esc(scene.param.label)}
@@ -2518,25 +3608,33 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
           </div>
         </div>
         <div class="panels">
-          <pre class="code" data-code aria-label="Code"></pre>
+          <div class="code-card">
+            <div class="code-head"><span>${esc(scene.id)}.ts</span><button class="btn" type="button" data-copy-code>Copy</button></div>
+            <div class="imports" data-imports></div>
+            <pre class="code" data-code aria-label="Code"></pre>
+          </div>
           <div class="side-panel">
             <div class="box"><h3>What is happening</h3><ol class="log" data-log aria-live="polite"></ol></div>
             <div class="box"><h3>What to notice</h3><ul class="notice" data-notice></ul></div>
           </div>
         </div>
+        ${pagerHtml(scene.id)}
       </div>`;
-    return createPlayer(main.firstElementChild, scene);
+    return createPlayer(main.firstElementChild, scene, state);
   }
 
   let firstRoute = true;
   function route() {
-    const id = location.hash.replace('#', '') || 'overview';
+    const [id, query = ''] = (location.hash.replace('#', '') || 'overview').split('?');
     const swap = () => {
       if (current) current.destroy();
       current = null;
       const scene = BY_ID[id];
-      renderNav(scene ? id : 'overview');
-      current = scene ? vizPage(scene) : overview();
+      const tryIt = TRY_BY_ID[id];
+      renderNav(scene || tryIt ? id : 'overview');
+      if (scene) current = vizPage(scene, linkState(scene, new URLSearchParams(query)));
+      else if (tryIt) current = tryPage(tryIt);
+      else current = overview();
       window.scrollTo(0, 0);
     };
     if (!firstRoute && document.startViewTransition && !reduceMotion) document.startViewTransition(swap);
