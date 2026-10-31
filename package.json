@@ -125,8 +125,10 @@
     "test:coverage": "node scripts/coverage.mjs",
     "test:package": "npm run build && node --test \"tests/package/*.test.mjs\"",
     "check:skill": "node scripts/check-skill.mjs",
-    "check": "npm run typecheck && npm run check:skill && npm run test:coverage && npm run test:package",
-    "prepack": "npm run build"
+    "check:site": "node scripts/sync-site-version.mjs --check",
+    "check": "npm run typecheck && npm run check:skill && npm run check:site && npm run test:coverage && npm run test:package",
+    "prepack": "npm run build",
+    "version": "node scripts/sync-site-version.mjs && git add site/index.html"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
