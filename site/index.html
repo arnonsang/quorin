@@ -1838,6 +1838,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'rw-mutex',
     name: 'RWMutex',
     subpath: 'quorin/async',
+    imports: ['RWMutex'],
     doc: 'concurrency.md#' + slug('`RWMutex`'),
     use: 'Let many readers share a config or cache at once, while a writer still gets it alone and is never starved by new readers.',
     param: { label: 'Readers', min: 2, max: 5, value: 3 },
@@ -1951,6 +1952,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'keyed-mutex',
     name: 'KeyedMutex',
     subpath: 'quorin/async',
+    imports: ['KeyedMutex'],
     doc: 'concurrency.md#' + slug('`KeyedMutex`'),
     use: 'Keep updates to the same user, session or file in order, while updates to different keys still run at the same time.',
     param: { label: 'Users', min: 1, max: 4, value: 2 },
@@ -2067,6 +2069,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'map-async',
     name: 'mapAsync',
     subpath: 'quorin/async',
+    imports: ['mapAsync'],
     doc: 'async.md#' + slug('mapAsync(items, mapper, { concurrency = 4, signal })'),
     use: 'Map a list with async work a few items at a time, and get the results back in the same order as the input.',
     param: { label: 'Concurrency', min: 1, max: 4, value: 3 },
@@ -2172,6 +2175,305 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       }
       T.hud({ status: 'finished out of order, returned in input order', tone: 'ok' });
       T.push(1400, [4], `every result sits in the slot of its url, with at most ${c} running`, '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- timeoutSignal ---------------- */
+  const SIGNAL_ROWS = [['A', 'fetch takes 1s'], ['B', 'fetch takes 5s'], ['C', 'client leaves at 1s']];
+  const signalY = (r) => 90 + r * 80;
+  const timeoutScene = {
+    id: 'timeout-signal',
+    name: 'timeoutSignal',
+    subpath: 'quorin/signal',
+    imports: ['timeoutSignal'],
+    doc: 'signal.md#' + slug('`timeoutSignal(ms, { signal })`'),
+    use: 'Give one call a deadline that also stops when its request is cancelled, and clear the timer when the work finishes first.',
+    param: { label: 'Timeout', min: 2, max: 4, value: 3 },
+    legend: [['sky', 'live signal'], ['blue', 'fetch'], ['ok', 'done'], ['dot-muted', 'timer cleared'], ['warn', 'wasted work'], ['bad', 'aborted']],
+    notice: {
+      quorin: [
+        'The deadline is linked to the request, so a client that leaves aborts the fetch at once, with the same reason.',
+        '<code>cancel()</code> in <code>finally</code> clears the timer without aborting anything.',
+        'The timer runs on quorin\'s clock, so tests can advance fake time instead of waiting.',
+      ],
+      naive: [
+        '<code>AbortSignal.timeout</code> only knows about time. It does not hear the client leave.',
+        'C keeps fetching for nobody until the timeout fires.',
+        'It reads the real clock, so a test has to wait the full timeout.',
+      ],
+    },
+    code(mode, t) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">async function</span> handle(request: Request) {',
+            `  <span class="k">const</span> deadline = timeoutSignal(<span class="n">${t}_000</span>, { signal: request.signal });`,
+            '  <span class="k">try</span> {',
+            '    <span class="k">return await</span> fetch(upstream, { signal: deadline.signal });',
+            '  } <span class="k">finally</span> {',
+            '    deadline.cancel(); <span class="c">// clears the timer, never aborts</span>',
+            '  }',
+            '}',
+          ]
+        : [
+            '<span class="k">async function</span> handle(request: Request) {',
+            `  <span class="k">const</span> signal = AbortSignal.timeout(<span class="n">${t}_000</span>); <span class="c">// not linked to the request</span>`,
+            '  <span class="k">return await</span> fetch(upstream, { signal });',
+            '}',
+          ];
+    },
+    hubs: () => [],
+    stat() {
+      let s = svgText(230, 40, 'request.signal', 'cap', 'middle') + svgText(360, 40, 'deadline', 'cap', 'middle') + svgText(490, 40, 'fetch', 'cap', 'middle');
+      SIGNAL_ROWS.forEach(([name, what], r) => {
+        s += svgText(20, signalY(r) - 4, name, 'cap-strong') + svgText(20, signalY(r) + 13, what, 'cap');
+      });
+      return s;
+    },
+    hud(h) {
+      let s = '';
+      for (let r = 0; r < SIGNAL_ROWS.length; r++) {
+        if (h['tm' + r]) s += svgText(360, signalY(r) + 30, h['tm' + r], 'cap', 'middle');
+        if (h['o' + r]) s += svgText(528, signalY(r) + 4, h['o' + r], 'cap-strong', 'start', `style="fill:var(--${h['c' + r] || 'ink'})"`);
+      }
+      s += svgText(700, 40, `t = ${h.t || 0}s`, 'cap-strong', 'end');
+      if (h.status) s += svgText(360, 326, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, t) {
+      const T = timeline();
+      const quorin = mode === 'quorin';
+      for (let r = 0; r < SIGNAL_ROWS.length; r++) {
+        T.set('req' + r, { x: 230, y: signalY(r), r: 11, fill: 'sky' });
+        T.set('dl' + r, { x: 360, y: signalY(r), r: 11, fill: 'sky' });
+        T.set('f' + r, { x: 490, y: signalY(r), r: 11, fill: 'blue' });
+        if (quorin) T.link('req' + r, 'dl' + r);
+        T.link('dl' + r, 'f' + r);
+        T.hud({ ['tm' + r]: `timer ${t}s`, ['o' + r]: '', ['c' + r]: 'ink' });
+      }
+      T.hud({ t: '0', status: '', tone: 'ink' });
+      T.push(700, quorin ? [1, 3] : [1, 2], quorin ? 'each request gets a deadline linked to its signal' : 'each fetch gets its own timeout signal, not linked to the request', 0);
+      const abort = (r) => ['dl', 'f'].forEach((p) => T.set(p + r, { fill: 'bad', broken: true }));
+      T.set('f0', { fill: 'ok' });
+      T.set('req0', { fill: 'ok' });
+      T.set('dl0', { fill: 'dot-muted' });
+      T.hud({ t: '1', tm0: quorin ? 'cleared' : 'still set', tm1: `timer ${t - 1}s`, tm2: `timer ${t - 1}s`, o0: quorin ? 'done, timer cleared' : 'done', c0: 'ok' });
+      T.push(800, quorin ? [5] : [2], quorin ? 'A finishes first, and cancel() clears its timer' : 'A finishes first', 1);
+      T.set('req2', { fill: 'bad', broken: true });
+      if (quorin) {
+        abort(2);
+        T.hud({ tm2: 'cleared', o2: 'aborted: client left', c2: 'bad' });
+        T.push(900, [1], 'C\'s client leaves. The deadline aborts with the same reason and the fetch stops at once', 1);
+      } else {
+        T.set('f2', { ring: 'warn' });
+        T.hud({ o2: 'client gone, still fetching', c2: 'warn' });
+        T.push(900, [2], 'C\'s client leaves, but nothing tells the fetch', 1);
+      }
+      abort(1);
+      T.hud({ t: String(t), tm1: 'fired', o1: `TimeoutError at ${t}s`, c1: 'bad' });
+      if (!quorin) {
+        abort(2);
+        T.set('f2', { ring: false });
+        T.hud({ tm0: 'fired anyway', tm2: 'fired', o2: `timed out, ${t - 1}s wasted`, c2: 'warn' });
+      }
+      T.push(900, quorin ? [1, 3] : [1, 2], quorin ? `B hits the ${t}s deadline and its fetch is aborted with a TimeoutError` : `B and C both time out at ${t}s`, t);
+      T.hud(quorin
+        ? { status: 'every fetch stopped as soon as nobody needed it', tone: 'ok' }
+        : { status: `C fetched for ${t - 1}s after its client left`, tone: 'bad' });
+      T.push(1400, quorin ? [5] : [1], quorin ? 'no timer was left running' : 'the timeout is the only way the fetch ever stops', '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- ValueMap ---------------- */
+  const VM_KEYS = ["{ sku: 'tee', size: 'M' }", "{ size: 'M', sku: 'tee' }", "{ sku: 'tee', size: 'M' }", "{ size: 'M', sku: 'tee' }"];
+  const valueMapScene = {
+    id: 'value-map',
+    name: 'ValueMap',
+    subpath: 'quorin/struct',
+    imports: ['ValueMap'],
+    doc: 'struct.md#' + slug('`ValueMap<K extends JsonValue, V>`'),
+    use: 'Use objects as map keys and find them by their contents, so two objects with the same fields are the same key.',
+    param: { label: 'Lookups', min: 1, max: 3, value: 2 },
+    legend: [['blue', 'key object'], ['ok', 'lookup hit'], ['bad', 'lookup missed'], ['lilac', 'stored price']],
+    notice: {
+      quorin: [
+        'Keys are compared by structure. Record field order does not matter, array order does.',
+        '<code>set</code> snapshots the key, so changing the original object later does not touch the map.',
+        'Keys must be JSON values. Anything else throws <code>UNSUPPORTED_VALUE</code>.',
+      ],
+      naive: [
+        'A native <code>Map</code> compares objects by identity, so a fresh object with the same fields never matches.',
+        'Setting it again adds a second entry for the same product.',
+      ],
+    },
+    code(mode) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> prices = <span class="k">new</span> ValueMap&lt;Sku, number&gt;();',
+            '<span class="k">const</span> key = { sku: <span class="s">\'tee\'</span>, size: <span class="s">\'M\'</span> };',
+            'prices.set(key, <span class="n">20</span>);',
+            '',
+            'prices.get({ size: <span class="s">\'M\'</span>, sku: <span class="s">\'tee\'</span> }); <span class="c">// 20</span>',
+            'key.size = <span class="s">\'L\'</span>; <span class="c">// the map kept its own copy</span>',
+          ]
+        : [
+            '<span class="k">const</span> prices = <span class="k">new</span> Map&lt;Sku, number&gt;();',
+            '<span class="k">const</span> key = { sku: <span class="s">\'tee\'</span>, size: <span class="s">\'M\'</span> };',
+            'prices.set(key, <span class="n">20</span>);',
+            '',
+            'prices.get({ size: <span class="s">\'M\'</span>, sku: <span class="s">\'tee\'</span> }); <span class="c">// undefined</span>',
+            'prices.set({ size: <span class="s">\'M\'</span>, sku: <span class="s">\'tee\'</span> }, <span class="n">20</span>); <span class="c">// a second entry</span>',
+          ];
+    },
+    hubs: () => [{ x: 470, y: 170, r: 34, fill: 'hub' }],
+    stat(mode, n) {
+      let s = svgText(470, 228, mode === 'quorin' ? 'ValueMap' : 'Map', 'cap-strong', 'middle') + svgText(630, 40, 'entries', 'cap', 'middle');
+      for (let i = 0; i <= n; i++) s += svgText(20, col(i, n + 1, 60) - 18, i === 0 ? 'set' : `get #${i}`, 'cap');
+      return s;
+    },
+    hud(h, mode, n) {
+      let s = '';
+      for (let i = 0; i <= n; i++) {
+        const text = i === 0 && h.mutated ? "{ sku: 'tee', size: 'L' }" : VM_KEYS[i];
+        s += svgText(20, col(i, n + 1, 60) + 4, text, 'cap-strong', 'start', i === 0 && h.mutated ? 'style="fill:var(--warn)"' : '');
+      }
+      if (h.canon) s += svgText(470, 112, h.canon, 'cap', 'middle');
+      s += svgText(630, 300, `size ${h.size || 0}`, 'cap-strong', 'middle');
+      if (h.status) s += svgText(360, 330, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`);
+      return s;
+    },
+    build(mode, n) {
+      const T = timeline();
+      const quorin = mode === 'quorin';
+      const home = (i) => ({ x: 262, y: col(i, n + 1, 60) });
+      const hub = { x: 470, y: 170 };
+      const entry = (i) => ({ x: 630, y: 80 + i * 44 });
+      for (let i = 0; i <= n; i++) T.set('k' + i, Object.assign(home(i), { r: 11, fill: 'blue' }));
+      T.hud({ size: '0', canon: '', status: '', tone: 'ink', mutated: '' });
+      T.push(500, [1], `one price, then ${n} lookup${n === 1 ? '' : 's'} with fresh objects`, '');
+      T.set('k0', Object.assign({}, hub));
+      T.set('e0', Object.assign(entry(0), { sx: hub.x, sy: hub.y, r: 13, fill: 'lilac', label: '20' }));
+      T.hud({ size: '1', canon: quorin ? 'stored as size=M, sku=tee' : 'stored under this object' });
+      T.push(800, [2], quorin ? 'set copies the key and stores it by its contents' : 'set stores the price under this exact object', '');
+      T.set('k0', home(0));
+      let size = 1;
+      for (let i = 1; i <= n; i++) {
+        T.set('k' + i, Object.assign({}, hub));
+        T.push(650, [4], `get #${i} looks up ${VM_KEYS[i]}`, '');
+        if (quorin) {
+          T.set('k' + i, Object.assign(home(i), { fill: 'ok', label: '20' }));
+          T.push(650, [4], i === 1 ? 'same fields in another order: a hit, 20' : 'a different object with the same fields: a hit, 20', '');
+        } else {
+          T.set('k' + i, Object.assign(home(i), { fill: 'bad', broken: true }));
+          T.set('e' + size, Object.assign(entry(size), { sx: hub.x, sy: hub.y, r: 13, fill: 'lilac', label: '20' }));
+          size++;
+          T.hud({ size: String(size) });
+          T.push(650, [4, 5], 'a different object, so get misses and the price is stored again', '');
+        }
+      }
+      if (quorin) {
+        T.hud({ mutated: '1' });
+        T.push(800, [5], 'changing the original key afterwards does not change the stored copy', '');
+        T.hud({ status: `one entry, and all ${n} lookup${n === 1 ? '' : 's'} hit`, tone: 'ok' });
+      } else {
+        T.hud({ status: `${n} miss${n === 1 ? '' : 'es'} and ${size} entries for the same product`, tone: 'bad' });
+      }
+      T.push(1400, quorin ? [4] : [5], quorin ? 'keys match by what they contain' : 'Map keys match by identity, not by contents', '');
+      return T.frames;
+    },
+  };
+
+  /* ---------------- trySafe ---------------- */
+  const SAFE_CALLS = [['ok', '200'], ['err', 'net'], ['defect', 'bug'], ['ok', '200']];
+  const trySafeScene = {
+    id: 'try-safe',
+    name: 'trySafe',
+    subpath: 'quorin/result',
+    imports: ['trySafe'],
+    doc: 'result.md#' + slug('`trySafe(fn, options?)` and `trySafeSync(fn, options?)`'),
+    use: 'Turn a thrown error into a typed result you can branch on, while real bugs still throw so they cannot hide.',
+    param: { label: 'Calls', min: 2, max: 4, value: 4 },
+    legend: [['blue', 'call'], ['ok', 'result.ok'], ['bad', 'result.error'], ['lilac', 'defect, rethrown'], ['dot-muted', 'null, cause lost']],
+    notice: {
+      quorin: [
+        'A thrown network error becomes a plain value on the error track. Nothing crashes and the type says what it can be.',
+        'Narrow with <code>result.ok</code>. The error is typed by <code>mapError</code>.',
+        'A <code>DefectError</code> is a bug, not a failure, so it is rethrown instead of being handled quietly.',
+      ],
+      naive: [
+        '<code>catch { return null }</code> turns every failure into the same <code>null</code>.',
+        'The network error and the bug look identical, and the cause is gone.',
+      ],
+    },
+    code(mode) {
+      return mode === 'quorin'
+        ? [
+            '<span class="k">const</span> result = <span class="k">await</span> trySafe(() =&gt; fetchUser(id), {',
+            '  mapError: (raw) =&gt; ({ kind: <span class="s">\'network\'</span>, cause: raw }),',
+            '});',
+            '<span class="k">if</span> (result.ok) render(result.data);',
+            '<span class="k">else</span> showRetry(result.error.kind); <span class="c">// typed error</span>',
+            '<span class="c">// a DefectError is rethrown, so bugs still crash loudly</span>',
+          ]
+        : [
+            '<span class="k">async function</span> load(id: string) {',
+            '  <span class="k">try</span> { <span class="k">return await</span> fetchUser(id); }',
+            '  <span class="k">catch</span> { <span class="k">return</span> <span class="k">null</span>; } <span class="c">// every failure looks the same</span>',
+            '}',
+            '<span class="k">const</span> user = <span class="k">await</span> load(id);',
+            '<span class="k">if</span> (user) render(user);',
+          ];
+    },
+    hubs: () => [{ x: 230, y: 170, r: 26, fill: 'hub' }],
+    stat(mode) {
+      let s = svgText(230, 214, mode === 'quorin' ? 'trySafe' : 'try / catch', 'cap-strong', 'middle');
+      if (mode === 'quorin') {
+        s += `<line x1="300" y1="100" x2="690" y2="100" style="stroke:var(--ok)" stroke-width="2"/><line x1="300" y1="240" x2="690" y2="240" style="stroke:var(--bad)" stroke-width="2"/>`;
+        s += svgText(300, 86, 'result.ok → result.data', 'cap') + svgText(300, 268, 'else → result.error', 'cap') + svgText(690, 36, 'rethrown', 'cap', 'end');
+      } else {
+        s += `<line x1="300" y1="170" x2="690" y2="170" style="stroke:var(--line)" stroke-width="2"/>` + svgText(300, 150, 'user, or null', 'cap');
+      }
+      return s;
+    },
+    hud(h) {
+      return h.status ? svgText(360, 326, h.status, 'cap-strong', 'middle', `style="fill:var(--${h.tone || 'ink'})"`) : '';
+    },
+    build(mode, n) {
+      const T = timeline();
+      const quorin = mode === 'quorin';
+      const calls = SAFE_CALLS.slice(0, n);
+      const hub = { x: 230, y: 170 };
+      calls.forEach(([, label], i) => T.set('c' + i, { x: 70, y: col(i, n, 50), r: 13, fill: 'blue', label }));
+      T.hud({ status: '', tone: 'ink' });
+      T.push(500, [quorin ? 0 : 4], `${n} calls: ${calls.map(([, l]) => l).join(', ')}`, '');
+      const slots = { ok: 0, err: 0, line: 0 };
+      calls.forEach(([kind, label], i) => {
+        T.set('c' + i, Object.assign({}, hub));
+        T.push(550, quorin ? [0] : [1], `call ${i + 1} runs`, '');
+        if (!quorin) {
+          const ok = kind === 'ok';
+          T.set('c' + i, { x: 340 + slots.line++ * 70, y: 170, fill: ok ? 'ok' : 'dot-muted', label: ok ? label : 'null' });
+          T.push(650, ok ? [5] : [2], ok ? 'it returns a user' : `it throws (${label === 'bug' ? 'a bug' : 'a network error'}) and becomes null`, '');
+          return;
+        }
+        if (kind === 'ok') {
+          T.set('c' + i, { x: 360 + slots.ok++ * 70, y: 100, fill: 'ok' });
+          T.push(650, [3], 'it returns, so the value goes on the ok track', '');
+        } else if (kind === 'err') {
+          T.set('c' + i, { x: 360 + slots.err++ * 70, y: 240, fill: 'bad' });
+          T.push(650, [1, 4], 'fetch throws a TypeError, so it becomes { kind: \'network\' } on the error track', '');
+        } else {
+          T.set('c' + i, { x: 650, y: 52, fill: 'lilac' });
+          T.push(650, [5], 'a DefectError is a bug, so trySafe rethrows it', '');
+        }
+      });
+      const failures = calls.filter(([k]) => k !== 'ok').length;
+      const hasBug = calls.some(([k]) => k === 'defect');
+      T.hud(quorin
+        ? { status: hasBug ? 'failures are typed values, and the bug still surfaced' : 'the failure is a typed value you can branch on', tone: 'ok' }
+        : { status: failures > 1 ? 'a network error and a bug both became null' : 'the failure became null, with no cause', tone: 'bad' });
+      T.push(1400, quorin ? [3, 4] : [5], quorin ? 'every outcome has its own track' : 'the caller cannot tell what went wrong', '');
       return T.frames;
     },
   };
@@ -2355,13 +2657,14 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     },
   };
 
-  const SCENES = [channelScene, selectScene, groupScene, mutexScene, rwScene, keyedScene, limitScene, rateScene, flightScene, mapScene, resilienceScene, cacheScene, dequeScene];
+  const SCENES = [channelScene, selectScene, groupScene, mutexScene, rwScene, keyedScene, limitScene, rateScene, flightScene, mapScene, resilienceScene, timeoutScene, trySafeScene, cacheScene, valueMapScene, dequeScene];
   const BY_ID = Object.fromEntries(SCENES.map((s) => [s.id, s]));
   const GROUPS = [
     ['Concurrency', [channelScene, selectScene, groupScene, mutexScene, rwScene, keyedScene]],
     ['Async limits', [limitScene, rateScene, flightScene, mapScene]],
     ['Resilience', [resilienceScene]],
-    ['Data', [cacheScene, dequeScene]],
+    ['Signals & results', [timeoutScene, trySafeScene]],
+    ['Data', [cacheScene, valueMapScene, dequeScene]],
   ];
   const ORDER = GROUPS.flatMap(([label, list]) => list.map((scene) => ({ scene, label })));
   const OVERVIEW_LINK = { id: 'overview', name: 'Overview', label: 'Back to start' };
