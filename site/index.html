@@ -36,6 +36,10 @@
   --code-ink: #dbe2ff;
   --code-dim: #7d87b5;
   --code-hl: rgba(76, 120, 255, 0.3);
+  --syn-key: #3b25b8;
+  --syn-str: #0b7a4f;
+  --syn-num: #a14d00;
+  --syn-lit: #1f4dff;
   --font-display: "Nunito", "Varela Round", "Avenir Next", system-ui, sans-serif;
   --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -46,14 +50,14 @@
     --bg: #080b17; --surface: #10152b; --surface-2: #161c37; --hub: #232c58; --ink: #eef1ff; --muted: #9aa2c7;
     --line: #252c50; --blue: #5d82ff; --sky: #3db7ff; --indigo: #9383ff; --lilac: #c4a3ff; --ok: #37c88a;
     --warn: #f2b23c; --bad: #ff6b72; --dot-muted: #485077; --solid: #3157ff; --solid-ink: #ffffff; --code-bg: #0a0e22; --code-ink: #dbe2ff;
-    --code-dim: #6f79a8; --code-hl: rgba(93, 130, 255, 0.28); color-scheme: dark;
+    --code-dim: #6f79a8; --code-hl: rgba(93, 130, 255, 0.28); --syn-key: #c4a3ff; --syn-str: #37c88a; --syn-num: #f2b23c; --syn-lit: #7d9bff; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #080b17; --surface: #10152b; --surface-2: #161c37; --hub: #232c58; --ink: #eef1ff; --muted: #9aa2c7;
   --line: #252c50; --blue: #5d82ff; --sky: #3db7ff; --indigo: #9383ff; --lilac: #c4a3ff; --ok: #37c88a;
   --warn: #f2b23c; --bad: #ff6b72; --dot-muted: #485077; --solid: #3157ff; --solid-ink: #ffffff; --code-bg: #0a0e22; --code-ink: #dbe2ff;
-  --code-dim: #6f79a8; --code-hl: rgba(93, 130, 255, 0.28); color-scheme: dark;
+  --code-dim: #6f79a8; --code-hl: rgba(93, 130, 255, 0.28); --syn-key: #c4a3ff; --syn-str: #37c88a; --syn-num: #f2b23c; --syn-lit: #7d9bff; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { background: var(--bg); color: var(--ink); margin: 0; }
@@ -153,8 +157,27 @@ a.card:hover { border-color: var(--blue); transform: translateY(-2px); }
 .try-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .try-in, .try-out { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; min-width: 0; }
 .try-in { border-right: 1px solid var(--line); }
-.try textarea { width: 100%; min-height: 190px; resize: vertical; font-family: var(--font-mono); font-size: 13px; line-height: 1.55; background: var(--code-bg); color: var(--code-ink); border: 0; border-radius: 12px; padding: 12px 14px; }
+.io-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.io-head .btn { padding: 3px 10px; font-size: 12.5px; }
+/* The textarea is transparent and sits on top of a highlighted copy of its own text; the grid cell grows with the content, so both always share one size. */
+.editor { display: grid; background: var(--code-bg); border-radius: 12px; }
+.editor:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
+.editor > pre, .editor > textarea { grid-area: 1 / 1; margin: 0; border: 0; padding: 12px 14px; font-family: var(--font-mono); font-size: 13px; line-height: 1.55; letter-spacing: 0; tab-size: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
+.editor > pre { color: var(--code-ink); pointer-events: none; overflow: hidden; }
+.editor > textarea { width: 100%; min-height: 190px; resize: vertical; overflow: hidden; background: transparent; color: transparent; caret-color: var(--code-ink); border-radius: 12px; }
+.editor > textarea:focus-visible { outline: none; }
+.editor > textarea::selection { background: rgba(127, 160, 255, 0.35); color: transparent; }
+.editor .j-key { color: #c59bff; }
+.editor .j-str { color: #7fe3b8; }
+.editor .j-num { color: #ffb86b; }
+.editor .j-lit { color: #8ab4ff; }
+.editor .j-punc { color: var(--code-dim); }
 .try-result { margin: 0; min-height: 190px; font-size: 13px; line-height: 1.55; background: var(--surface-2); border-radius: 12px; padding: 12px 14px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.try-result .j-key { color: var(--syn-key); }
+.try-result .j-str { color: var(--syn-str); }
+.try-result .j-num { color: var(--syn-num); }
+.try-result .j-lit { color: var(--syn-lit); }
+.try-result .j-punc { color: var(--muted); }
 .try-result.failed { color: var(--bad); }
 .try-meta { font-size: 12.5px; color: var(--muted); min-height: 1.5em; }
 .try-code { background: var(--code-bg); color: var(--code-ink); }
@@ -420,6 +443,24 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   ];
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Colours JSON-looking text token by token; anything that is not a token is escaped and left as is.
+  const JSON_TOKEN = /("(?:[^"\\\n]|\\.)*")(\s*:)?|\b(?:true|false|null|undefined)\b|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b|[{}[\],]/g;
+  function highlightJson(text) {
+    let html = '';
+    let last = 0;
+    for (const m of text.matchAll(JSON_TOKEN)) {
+      const [token, str, colon] = m;
+      html += esc(text.slice(last, m.index));
+      if (str) html += colon ? `<span class="j-key">${esc(str)}</span><span class="j-punc">${esc(colon)}</span>` : `<span class="j-str">${esc(str)}</span>`;
+      else html += `<span class="${/^[{}[\],]$/.test(token) ? 'j-punc' : /^[a-z]/.test(token) ? 'j-lit' : 'j-num'}">${esc(token)}</span>`;
+      last = m.index + token.length;
+    }
+    return html + esc(text.slice(last));
+  }
+  const highlightCall = (code) => esc(code)
+    .replace(/'[^']*'/g, (m) => `<span class="s">${m}</span>`)
+    .replace(/\b(const|return|new|await)\b/g, '<span class="k">$1</span>')
+    .replace(/\b(\d+)\b/g, '<span class="n">$1</span>');
   const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   const lerp = (a, b, k) => a + (b - a) * k;
   const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
@@ -2776,7 +2817,8 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
         },
         {
           name: 'safeClone',
-          sig: 'const copy = safeClone(input)',
+          imports: ['safeClone', 'isEqual'],
+          sig: 'const copy = safeClone(input);\n({ copy, sameObject: copy === input, sameContents: isEqual(copy, input) })',
           call: (q, value) => { const copy = q.safeClone(value); return { copy, sameObject: copy === value, sameContents: q.isEqual(copy, value) }; },
           presets: {
             'Deep copy': '{ "user": { "name": "ada", "roles": ["admin"] } }',
@@ -2794,20 +2836,21 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
         {
           name: 'toBase64',
           imports: ['toBase64', 'toHex', 'fastHash', 'stringToBytes'],
-          sig: 'const bytes = stringToBytes(input.text)',
+          sig: 'const bytes = stringToBytes(input.text);\n({ base64: toBase64(bytes, input), hex: toHex(bytes), fastHash: fastHash(bytes) })',
           call: (q, { text, alphabet, omitPadding }) => {
             const bytes = q.stringToBytes(text);
             return { base64: q.toBase64(bytes, { alphabet, omitPadding }), hex: q.toHex(bytes), fastHash: q.fastHash(bytes) };
           },
           presets: {
             'Plain text': '{ "text": "hello world" }',
-            'URL-safe, no padding': '{ "text": "quorin?id=ü", "alphabet": "base64url", "omitPadding": true }',
+            'Standard alphabet': '{ "text": "ü??" }',
+            'URL-safe, no padding': '{ "text": "ü??", "alphabet": "base64url", "omitPadding": true }',
           },
         },
         {
           name: 'fromBase64',
           imports: ['fromBase64', 'bytesToString'],
-          sig: 'fromBase64(input.text, input.options)',
+          sig: 'const bytes = fromBase64(input.text, input.options);\nbytesToString(bytes)',
           raw: true,
           call: (q, { text, options }) => {
             const bytes = q.fromBase64(text, options);
@@ -3471,11 +3514,14 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
           </div>
           <div class="try-body" role="tabpanel">
             <div class="try-in">
-              <label class="tile-label" for="try-input-${page.id}">Input (JSON)</label>
-              <textarea id="try-input-${page.id}" data-input spellcheck="false" autocomplete="off"></textarea>
+              <div class="io-head"><label class="tile-label" for="try-input-${page.id}">Input (JSON)</label><button class="btn" type="button" data-format>Format</button></div>
+              <div class="editor">
+                <pre aria-hidden="true" data-input-hl></pre>
+                <textarea id="try-input-${page.id}" data-input spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+              </div>
             </div>
             <div class="try-out">
-              <span class="tile-label">Output</span>
+              <div class="io-head"><span class="tile-label">Output</span></div>
               <pre class="try-result" data-out aria-live="polite"></pre>
               <span class="try-meta" data-meta></span>
             </div>
@@ -3492,8 +3538,10 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     const out = root.querySelector('[data-out]');
     const meta = root.querySelector('[data-meta]');
     const status = root.querySelector('[data-status]');
+    const inputHl = root.querySelector('[data-input-hl]');
+    const paint = () => { inputHl.innerHTML = highlightJson(input.value.endsWith('\n') || !input.value ? input.value + ' ' : input.value); };
     const show = (text, failed, note = '') => {
-      out.textContent = text;
+      out.innerHTML = failed ? esc(text) : highlightJson(text);
       out.classList.toggle('failed', failed);
       meta.textContent = note;
     };
@@ -3512,6 +3560,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     }
     function loadPreset(name) {
       input.value = fn.presets[name];
+      paint();
       root.querySelectorAll('[data-preset]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === name)));
       run();
     }
@@ -3526,7 +3575,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       root.querySelector('[role="tabpanel"]').setAttribute('aria-labelledby', `fn-${page.id}-${i}`);
       root.querySelector('[data-presets]').innerHTML = Object.keys(fn.presets).map((name) => `<button type="button" data-preset="${esc(name)}" aria-pressed="false">${esc(name)}</button>`).join('');
       root.querySelector('[data-imports]').innerHTML = `<span class="k">import</span> { ${(fn.imports || [fn.name]).join(', ')} } <span class="k">from</span> <span class="sub">'${esc(page.subpath)}'</span>;`;
-      root.querySelector('[data-call]').textContent = fn.sig;
+      root.querySelector('[data-call]').innerHTML = highlightCall(fn.sig);
       loadPreset(Object.keys(fn.presets)[0]);
     }
     const tabs = root.querySelector('.fn-tabs');
@@ -3539,7 +3588,17 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       selectFn((to + page.fns.length) % page.fns.length, true);
     });
     root.querySelector('[data-presets]').addEventListener('click', (e) => { const b = e.target.closest('[data-preset]'); if (b) loadPreset(b.dataset.preset); });
-    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 180); });
+    input.addEventListener('input', () => {
+      paint();
+      root.querySelectorAll('[data-preset]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      clearTimeout(timer);
+      timer = setTimeout(run, 180);
+    });
+    root.querySelector('[data-format]').addEventListener('click', () => {
+      try { input.value = JSON.stringify(JSON.parse(input.value), null, 2); } catch { run(); return; }
+      paint();
+      run();
+    });
     const onKey = pageKey(page.id);
     document.addEventListener('keydown', onKey);
     selectFn(0);
