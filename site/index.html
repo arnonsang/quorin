@@ -157,6 +157,12 @@ input[type="range"] { accent-color: var(--blue); width: 120px; }
 .code .k { color: #c59bff; }
 .code .s { color: #7fe3b8; }
 .code .n { color: #ffb86b; }
+.code-card { background: var(--code-bg); color: var(--code-ink); border-radius: var(--radius); overflow: hidden; min-width: 0; display: flex; flex-direction: column; }
+.code-card .code { border-radius: 0; background: transparent; flex: 1; }
+.imports { padding: 10px 18px; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); font-family: var(--font-mono); font-size: 13px; line-height: 1.7; white-space: pre; overflow-x: auto; }
+.imports .k { color: #c59bff; }
+.imports .sub { color: #7fe3b8; background: rgba(127, 227, 184, 0.12); border-radius: 4px; padding: 0 3px; }
+.imports.naive { color: var(--code-dim); font-style: italic; }
 .side-panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
 .box h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
@@ -377,6 +383,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   ];
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   const lerp = (a, b, k) => a + (b - a) * k;
   const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
   const spring = (k) => (k >= 1 ? 1 : 1 - Math.exp(-7 * k) * Math.cos(8 * k));
@@ -416,6 +423,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'channel',
     name: 'Channel',
     subpath: 'quorin/async',
+    imports: ['Channel'],
     doc: 'concurrency.md#channelt',
     use: 'Hand jobs from a fast producer to a slower consumer without letting the backlog grow without limit.',
     param: { label: 'Capacity', min: 0, max: 4, value: 2 },
@@ -585,6 +593,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'select',
     name: 'select',
     subpath: 'quorin/async',
+    imports: ['select', 'receive', 'after'],
     doc: 'concurrency.md#selectcases-options',
     use: 'Wait for whichever of several channels, timers, or aborts happens first, and take exactly one.',
     param: { label: 'Rounds', min: 1, max: 4, value: 2 },
@@ -739,6 +748,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'task-group',
     name: 'createTaskGroup',
     subpath: 'quorin/async',
+    imports: ['createTaskGroup'],
     doc: 'concurrency.md#createtaskgroupoptions',
     use: 'Run related jobs together, cap how many run at once, and stop all of them cleanly when one fails.',
     param: { label: 'Concurrency', min: 1, max: 4, value: 2 },
@@ -902,6 +912,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'resilience',
     name: 'withResilience',
     subpath: 'quorin/resilience',
+    imports: ['withResilience'],
     doc: 'resilience.md#withresiliencetask-options',
     use: 'Call a flaky service with per-attempt timeouts, safe retries, backoff, and one overall deadline.',
     param: { label: 'Retries', min: 0, max: 3, value: 2 },
@@ -1099,6 +1110,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'concurrency-limit',
     name: 'concurrencyLimit',
     subpath: 'quorin/async',
+    imports: ['concurrencyLimit'],
     doc: 'async.md#' + slug('concurrencyLimit(concurrency, { maxPending = 1024 })'),
     use: 'Call an API that only handles a few requests at a time, and queue the rest instead of getting rejected.',
     param: { label: 'Concurrency', min: 1, max: 4, value: 2 },
@@ -1267,6 +1279,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'rate-limiter',
     name: 'createRateLimiter',
     subpath: 'quorin/async',
+    imports: ['createRateLimiter'],
     doc: 'async.md#' + slug('createRateLimiter({ rate, intervalMs = 1000, burst = rate, maxPending = 1024 })'),
     use: 'Stay under an API rate limit by spending tokens that refill over time, instead of sending everything at once.',
     param: { label: 'Rate per second', min: 1, max: 3, value: 2 },
@@ -1390,6 +1403,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'single-flight',
     name: 'singleFlight',
     subpath: 'quorin/async',
+    imports: ['singleFlight'],
     doc: 'async.md#' + slug('singleFlight(fn, { key, maxInFlight = 1024 })'),
     use: 'When many handlers ask for the same thing at the same moment, make one call and share the answer.',
     param: { label: 'Callers', min: 2, max: 6, value: 4 },
@@ -1494,6 +1508,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'cache',
     name: 'createCache',
     subpath: 'quorin/cache',
+    imports: ['createCache'],
     doc: 'cache.md#' + slug('createCache(options)'),
     use: 'Keep recent results close, with a hard size limit, coalesced loads, and stale data served while it refreshes.',
     param: { label: 'max', min: 2, max: 4, value: 3 },
@@ -1695,6 +1710,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'mutex',
     name: 'Mutex',
     subpath: 'quorin/async',
+    imports: ['Mutex', 'withLock'],
     doc: 'concurrency.md#' + slug('`Mutex` and `withLock(mutex, fn, options?)`'),
     use: 'Stop async read, then write steps from overwriting each other when several tasks touch the same record.',
     param: { label: 'Tasks', min: 2, max: 4, value: 3 },
@@ -1823,6 +1839,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     id: 'deque',
     name: 'Deque',
     subpath: 'quorin/struct',
+    imports: ['Deque'],
     doc: 'struct.md#' + slug('Deque<T>'),
     use: 'A queue where taking from the front costs the same as adding to the back, at any size.',
     param: { label: 'Shifts', min: 1, max: 4, value: 3 },
@@ -2100,6 +2117,12 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
 
     const stageHost = root.querySelector('[data-stage]');
     const codeEl = root.querySelector('[data-code]');
+    const importsEl = root.querySelector('[data-imports]');
+    const copyCodeBtn = root.querySelector('[data-copy-code]');
+    copyCodeBtn.addEventListener('click', () => {
+      const body = scene.code(mode, param).map(plain).join('\n');
+      copyText(copyCodeBtn, mode === 'quorin' ? `${plain(importsEl.innerHTML)}\n\n${body}` : body, 'Copy');
+    });
     const logEl = root.querySelector('[data-log]');
     const noticeEl = root.querySelector('[data-notice]');
     const playBtn = root.querySelector('[data-play]');
@@ -2114,6 +2137,10 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       stageHost.innerHTML = stageSvg(scene, mode, param, frames[0]);
       const code = scene.code(mode, param);
       codeEl.innerHTML = code.map((l, i) => `<span class="ln" data-l="${i}">${l || ' '}</span>`).join('');
+      importsEl.className = 'imports ' + mode;
+      importsEl.innerHTML = mode === 'quorin'
+        ? `<span class="k">import</span> { ${scene.imports.join(', ')} } <span class="k">from</span> <span class="sub" title="Also exported from 'quorin'">'${esc(scene.subpath)}'</span>;`
+        : '// nothing to import: written by hand';
       noticeEl.className = 'notice ' + mode;
       noticeEl.innerHTML = scene.notice[mode].map((n) => `<li>${n}</li>`).join('');
       syncPanels();
@@ -2355,7 +2382,6 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       ['A cross is cancelled or failed', 'The work stopped. Red means it was lost or failed.', '<circle cx="28" cy="18" r="10" style="fill:var(--bad)"/><path d="M23.5 13.5 L32.5 22.5 M32.5 13.5 L23.5 22.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>'],
     ];
     const stats = [['0', 'runtime dependencies'], ['10', 'subpath modules'], ['5.8+', 'TypeScript'], ['22.19+', 'Node.js']];
-    const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
     main.innerHTML = `
       <div class="page">
         <div class="bento">
@@ -2561,7 +2587,11 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
           </div>
         </div>
         <div class="panels">
-          <pre class="code" data-code aria-label="Code"></pre>
+          <div class="code-card">
+            <div class="code-head"><span>${esc(scene.id)}.ts</span><button class="btn" type="button" data-copy-code>Copy</button></div>
+            <div class="imports" data-imports></div>
+            <pre class="code" data-code aria-label="Code"></pre>
+          </div>
           <div class="side-panel">
             <div class="box"><h3>What is happening</h3><ol class="log" data-log aria-live="polite"></ol></div>
             <div class="box"><h3>What to notice</h3><ul class="notice" data-notice></ul></div>
