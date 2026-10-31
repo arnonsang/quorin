@@ -179,9 +179,15 @@ input[type="range"] { accent-color: var(--blue); width: 120px; }
 .tile-stats { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-content: center; }
 .tile-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--muted); }
 .tile-install .tile-label { color: rgba(255, 255, 255, 0.78); }
+.pm { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; background: rgba(255, 255, 255, 0.14); border-radius: 11px; padding: 3px; }
+.pm button { border: 0; background: transparent; color: rgba(255, 255, 255, 0.84); font-family: var(--font-mono); font-size: 12.5px; padding: 5px 2px; border-radius: 8px; cursor: pointer; min-width: 0; }
+.pm button:hover { background: rgba(255, 255, 255, 0.12); }
+.pm button[aria-selected="true"] { background: #fff; color: #1f4dff; font-weight: 500; }
+.pm button:focus-visible { outline-color: #fff; }
 .tile-install .cmdline { font-family: var(--font-mono); font-size: 17px; word-break: break-word; }
 .tile-install .cmdline .prompt { opacity: 0.7; margin-right: 8px; }
 .tile-install p { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, 0.86); }
+.tile-install p a { color: #fff; }
 .btn-on-solid { border: 1px solid rgba(255, 255, 255, 0.5); background: transparent; color: #fff; border-radius: 10px; padding: 6px 12px; cursor: pointer; font-size: 13.5px; font-weight: 600; align-self: flex-start; }
 .btn-on-solid:hover { background: rgba(255, 255, 255, 0.14); }
 .btn-on-solid:focus-visible { outline-color: #fff; }
@@ -360,6 +366,15 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
 <script>
 (() => {
   const DOCS = 'https://github.com/arnonsang/quorin/blob/main/docs/';
+  const NODE_NOTE = 'One ESM build with types. <code>require()</code> works too.';
+  const TARGET_NOTE = (runtime) => `${runtime} is a target but not yet verified in CI. <a href="${DOCS}compatibility.md">Compatibility</a>`;
+  const PMS = [
+    ['npm', 'npm install quorin', NODE_NOTE],
+    ['pnpm', 'pnpm add quorin', NODE_NOTE],
+    ['yarn', 'yarn add quorin', NODE_NOTE],
+    ['bun', 'bun add quorin', TARGET_NOTE('Bun')],
+    ['deno', 'deno add npm:quorin', TARGET_NOTE('Deno')],
+  ];
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -2358,8 +2373,9 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
           </section>
           <section class="tile tile-install" aria-label="Install">
             <span class="tile-label">Install</span>
-            <div class="cmdline"><span class="prompt" aria-hidden="true">$</span><span id="install-text">npm install quorin</span></div>
-            <p>One ESM build with types. <code>require()</code> works too.</p>
+            <div class="pm" role="tablist" aria-label="Package manager">${PMS.map(([name]) => `<button type="button" role="tab" id="pm-${name}" aria-controls="install-cmd" data-pm="${name}">${name}</button>`).join('')}</div>
+            <div class="cmdline" id="install-cmd" role="tabpanel"><span class="prompt" aria-hidden="true">$</span><span id="install-text"></span></div>
+            <p id="install-note"></p>
             <button class="btn-on-solid" id="copy-install" type="button">Copy</button>
           </section>
           <a class="tile tile-live" href="#select" aria-label="Open the select visualizer">
@@ -2411,8 +2427,35 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       observer = new IntersectionObserver((entries) => entries.forEach((en) => (en.isIntersecting ? live.start() : live.stop())));
       observer.observe(liveTile);
     } else live.start();
+    const pmTabs = main.querySelector('.pm');
+    const installText = document.getElementById('install-text');
+    function selectPm(name, focus) {
+      const [pm, command, note] = PMS.find(([n]) => n === name) || PMS[0];
+      for (const tab of pmTabs.children) {
+        const on = tab.dataset.pm === pm;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+        if (on && focus) tab.focus();
+      }
+      installText.textContent = command;
+      document.getElementById('install-cmd').setAttribute('aria-labelledby', `pm-${pm}`);
+      document.getElementById('install-note').innerHTML = note;
+      store.set('quorin:pm', pm);
+    }
+    pmTabs.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-pm]');
+      if (tab) selectPm(tab.dataset.pm);
+    });
+    pmTabs.addEventListener('keydown', (e) => {
+      const i = PMS.findIndex(([n]) => n === e.target.dataset.pm);
+      const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: PMS.length - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      selectPm(PMS[(to + PMS.length) % PMS.length][0], true);
+    });
+    selectPm(store.get('quorin:pm') || 'npm');
     const copyInstall = document.getElementById('copy-install');
-    copyInstall.addEventListener('click', () => copyText(copyInstall, 'npm install quorin', 'Copy'));
+    copyInstall.addEventListener('click', () => copyText(copyInstall, installText.textContent, 'Copy'));
     const copyCode = document.getElementById('copy-code');
     copyCode.addEventListener('click', () => copyText(copyCode, POOL_CODE.map(plain).join('\n'), 'Copy'));
     renderDownloads(main.querySelector('[data-dl]'));
