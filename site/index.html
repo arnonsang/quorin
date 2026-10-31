@@ -2071,12 +2071,12 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     };
   }
 
-  function createPlayer(root, scene) {
-    let mode = 'quorin';
-    let param = scene.param.value;
+  function createPlayer(root, scene, state) {
+    let mode = state.mode;
+    let param = state.param;
     let frames = [];
     let index = 0;
-    let playing = !reduceMotion;
+    let playing = !reduceMotion && !state.step;
     const saved = Number(store.get('quorin.speed'));
     let speed = [0.5, 1, 2].includes(saved) ? saved : 1;
     let anim = null;
@@ -2220,8 +2220,17 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       rebuild();
       if (playing) advance();
     });
+    const linkBtn = root.querySelector('[data-link]');
+    linkBtn.addEventListener('click', () => copyText(linkBtn, stepLink(scene, mode, param, index + 1), 'Copy link'));
 
+    paramInput.value = String(param);
+    paramOut.textContent = String(param);
     rebuild();
+    if (state.step) {
+      index = Math.min(state.step, frames.length) - 1;
+      drawAt(frames[index], frames[index], 1);
+      syncPanels();
+    }
     if (playing) advance();
     return { destroy() { stop(); document.removeEventListener('keydown', onKey); } };
   }
@@ -2483,7 +2492,20 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     }
   });
 
-  function vizPage(scene) {
+  // Deep links: #channel?mode=naive&capacity=0&step=7. Unknown or out-of-range values fall back to the defaults.
+  const paramKey = (scene) => scene.param.label.split(' ')[0].toLowerCase();
+  function linkState(scene, params) {
+    const mode = params.get('mode') === 'naive' ? 'naive' : 'quorin';
+    const p = Number(params.get(paramKey(scene)));
+    const param = params.has(paramKey(scene)) && Number.isInteger(p) && p >= scene.param.min && p <= scene.param.max ? p : scene.param.value;
+    const step = Number(params.get('step'));
+    return { mode, param, step: Number.isInteger(step) && step >= 1 ? step : 0 };
+  }
+  function stepLink(scene, mode, param, step) {
+    return `${location.origin}${location.pathname}#${scene.id}?mode=${mode}&${paramKey(scene)}=${param}&step=${step}`;
+  }
+
+  function vizPage(scene, state) {
     main.innerHTML = `
       <div class="page">
         <header class="viz-head">
@@ -2506,6 +2528,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
             <button class="btn" type="button" data-back aria-label="Step back">Back</button>
             <button class="btn" type="button" data-step aria-label="Step forward">Step</button>
             <button class="btn" type="button" data-reset>Reset</button>
+            <button class="btn" type="button" data-link>Copy link</button>
             <span class="progress" data-progress></span>
             <span class="spacer"></span>
             <label for="param-${scene.id}">${esc(scene.param.label)}
@@ -2525,18 +2548,18 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
           </div>
         </div>
       </div>`;
-    return createPlayer(main.firstElementChild, scene);
+    return createPlayer(main.firstElementChild, scene, state);
   }
 
   let firstRoute = true;
   function route() {
-    const id = location.hash.replace('#', '') || 'overview';
+    const [id, query = ''] = (location.hash.replace('#', '') || 'overview').split('?');
     const swap = () => {
       if (current) current.destroy();
       current = null;
       const scene = BY_ID[id];
       renderNav(scene ? id : 'overview');
-      current = scene ? vizPage(scene) : overview();
+      current = scene ? vizPage(scene, linkState(scene, new URLSearchParams(query))) : overview();
       window.scrollTo(0, 0);
     };
     if (!firstRoute && document.startViewTransition && !reduceMotion) document.startViewTransition(swap);
