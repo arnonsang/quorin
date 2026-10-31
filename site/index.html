@@ -137,6 +137,28 @@ a.card:hover { border-color: var(--blue); transform: translateY(-2px); }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(11, 16, 32, 0.12); }
 .seg button[data-mode="naive"][aria-pressed="true"] { color: var(--bad); }
 .doclink { font-size: 14px; }
+.card-try .try-fns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.card-try .try-fns code { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; background: var(--surface-2); }
+.try-status { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+.try-status i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); display: inline-block; }
+.try-status.ready i { background: var(--ok); }
+.try-status.failed i { background: var(--bad); }
+.try { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.try-top { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.fn-tabs, .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.fn-tabs button { font-family: var(--font-mono); font-size: 13px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 9px; padding: 5px 11px; cursor: pointer; }
+.fn-tabs button[aria-selected="true"] { color: var(--blue); border-color: var(--blue); background: var(--surface-2); }
+.presets button { font-size: 12.5px; border: 1px dashed var(--line); background: transparent; color: var(--ink); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.presets button:hover, .presets button[aria-pressed="true"] { border-color: var(--blue); border-style: solid; }
+.try-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.try-in, .try-out { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; min-width: 0; }
+.try-in { border-right: 1px solid var(--line); }
+.try textarea { width: 100%; min-height: 190px; resize: vertical; font-family: var(--font-mono); font-size: 13px; line-height: 1.55; background: var(--code-bg); color: var(--code-ink); border: 0; border-radius: 12px; padding: 12px 14px; }
+.try-result { margin: 0; min-height: 190px; font-size: 13px; line-height: 1.55; background: var(--surface-2); border-radius: 12px; padding: 12px 14px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.try-result.failed { color: var(--bad); }
+.try-meta { font-size: 12.5px; color: var(--muted); min-height: 1.5em; }
+.try-code { background: var(--code-bg); color: var(--code-ink); }
+.try-code .code { border-radius: 0; background: transparent; padding: 10px 18px 14px; white-space: pre-wrap; }
 .pager { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 .pager a { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; min-width: 0; }
 .pager a:hover { border-color: var(--blue); }
@@ -293,7 +315,8 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   .nav span.soon { display: none; }
   .side-foot { display: none; }
   main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px; }
-  .panels { grid-template-columns: minmax(0, 1fr); }
+  .panels, .try-body { grid-template-columns: minmax(0, 1fr); }
+  .try-in { border-right: 0; border-bottom: 1px solid var(--line); }
   .search, .hint { display: none; }
   .main-col { min-height: 0; }
   .foot { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -379,6 +402,13 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
 <script>
 (() => {
   const DOCS = 'https://github.com/arnonsang/quorin/blob/main/docs/';
+  // Kept in sync with package.json by scripts/sync-site-version.mjs during a release.
+  const QUORIN_VERSION = '0.2.0';
+  let quorinModule = null;
+  const loadQuorin = () => {
+    quorinModule ??= import(`https://cdn.jsdelivr.net/npm/quorin@${QUORIN_VERSION}/+esm`).catch((error) => { quorinModule = null; throw error; });
+    return quorinModule;
+  };
   const NODE_NOTE = 'One ESM build with types. <code>require()</code> works too.';
   const TARGET_NOTE = (runtime) => `${runtime} is a target but not yet verified in CI. <a href="${DOCS}compatibility.md">Compatibility</a>`;
   const PMS = [
@@ -2666,13 +2696,203 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     ['Signals & results', [timeoutScene, trySafeScene]],
     ['Data', [cacheScene, valueMapScene, dequeScene]],
   ];
-  const ORDER = GROUPS.flatMap(([label, list]) => list.map((scene) => ({ scene, label })));
+  /* ---------------- Playground ---------------- */
+  // Each preset is raw JSON text, so keys such as "__proto__" stay own properties when parsed.
+  const bytesOut = (b) => `Uint8Array [${Array.from(b).join(', ')}]`;
+  const PLAYGROUND = [
+    {
+      id: 'object',
+      name: 'quorin/object',
+      subpath: 'quorin/object',
+      doc: 'object.md',
+      use: 'Read, write, merge and serialize plain JSON objects without walking into prototypes or accessors.',
+      fns: [
+        {
+          name: 'deepMerge',
+          sig: 'deepMerge(input[0], input[1])',
+          call: (q, [left, right]) => q.deepMerge(left, right),
+          presets: {
+            'Config override': '[\n  { "db": { "host": "localhost", "port": 5432 }, "flags": ["a"] },\n  { "db": { "port": 6543 }, "flags": ["b"] }\n]',
+            'null replaces a record': '[\n  { "cache": { "ttlMs": 60000 } },\n  { "cache": null }\n]',
+            'Prototype pollution': '[\n  { "safe": true },\n  { "__proto__": { "admin": true } }\n]',
+          },
+        },
+        {
+          name: 'getPath',
+          sig: 'getPath(input.target, input.path, input.fallback)',
+          call: (q, { target, path, fallback }) => q.getPath(target, path, fallback),
+          presets: {
+            'Read nested': '{\n  "target": { "server": { "port": 8080 }, "tags": ["a"] },\n  "path": "server.port"\n}',
+            'Missing uses fallback': '{\n  "target": { "server": {} },\n  "path": "server.timeout",\n  "fallback": 30\n}',
+            'Array segment': '{\n  "target": { "tags": ["a", "b"] },\n  "path": ["tags", 1]\n}',
+            'Forbidden key': '{\n  "target": {},\n  "path": "constructor",\n  "fallback": "never reached"\n}',
+          },
+        },
+        {
+          name: 'setPath',
+          sig: 'setPath(input.target, input.path, input.value); return input.target',
+          call: (q, { target, path, value }) => { q.setPath(target, path, value); return target; },
+          presets: {
+            'Create branches': '{\n  "target": {},\n  "path": ["theme", "colors", 0],\n  "value": "#fff"\n}',
+            'Primitive branch is kept': '{\n  "target": { "theme": "dark" },\n  "path": ["theme", "accent"],\n  "value": "#1f4dff"\n}',
+            'Forbidden key': '{\n  "target": {},\n  "path": ["__proto__", "admin"],\n  "value": true\n}',
+          },
+        },
+        {
+          name: 'stableStringify',
+          sig: 'stableStringify(input)',
+          call: (q, value) => q.stableStringify(value),
+          presets: {
+            'Sorted keys': '{ "b": 1, "a": [2, { "d": 1, "c": 0 }] }',
+            'Cache key': '{ "userId": 7, "filters": { "status": "open", "sort": "new" } }',
+          },
+        },
+      ],
+    },
+    {
+      id: 'state',
+      name: 'quorin/state',
+      subpath: 'quorin/state',
+      doc: 'state.md',
+      use: 'Redact secrets before logging, compare deeply, and clone without running anyone\'s code.',
+      fns: [
+        {
+          name: 'redact',
+          sig: 'redact(input)',
+          call: (q, value) => q.redact(value),
+          presets: {
+            'Request log': '{\n  "user": "ada",\n  "password": "hunter2",\n  "headers": { "Authorization": "Bearer x", "accept": "json" }\n}',
+            'Nested keys': '{\n  "stripe": { "apiKey": "sk_live_123", "secretToken": "abc" },\n  "cookie": "sid=1",\n  "note": "token=abc inside a string stays"\n}',
+          },
+        },
+        {
+          name: 'isEqual',
+          sig: 'isEqual(input[0], input[1])',
+          call: (q, [a, b]) => q.isEqual(a, b),
+          presets: {
+            'Key order ignored': '[\n  { "a": 1, "b": [1, 2] },\n  { "b": [1, 2], "a": 1 }\n]',
+            'Array order matters': '[\n  [1, 2, 3],\n  [3, 2, 1]\n]',
+          },
+        },
+        {
+          name: 'safeClone',
+          sig: 'const copy = safeClone(input)',
+          call: (q, value) => { const copy = q.safeClone(value); return { copy, sameObject: copy === value, sameContents: q.isEqual(copy, value) }; },
+          presets: {
+            'Deep copy': '{ "user": { "name": "ada", "roles": ["admin"] } }',
+          },
+        },
+      ],
+    },
+    {
+      id: 'bytes',
+      name: 'quorin/bytes',
+      subpath: 'quorin/bytes',
+      doc: 'bytes.md',
+      use: 'Convert between text, hex and base64 with strict decoders, and hash bytes quickly.',
+      fns: [
+        {
+          name: 'toBase64',
+          imports: ['toBase64', 'toHex', 'fastHash', 'stringToBytes'],
+          sig: 'const bytes = stringToBytes(input.text)',
+          call: (q, { text, alphabet, omitPadding }) => {
+            const bytes = q.stringToBytes(text);
+            return { base64: q.toBase64(bytes, { alphabet, omitPadding }), hex: q.toHex(bytes), fastHash: q.fastHash(bytes) };
+          },
+          presets: {
+            'Plain text': '{ "text": "hello world" }',
+            'URL-safe, no padding': '{ "text": "quorin?id=ü", "alphabet": "base64url", "omitPadding": true }',
+          },
+        },
+        {
+          name: 'fromBase64',
+          imports: ['fromBase64', 'bytesToString'],
+          sig: 'fromBase64(input.text, input.options)',
+          raw: true,
+          call: (q, { text, options }) => {
+            const bytes = q.fromBase64(text, options);
+            return `${bytesOut(bytes)}\n${JSON.stringify(q.bytesToString(bytes, { fatal: false }))}`;
+          },
+          presets: {
+            'Padded': '{ "text": "aGk=" }',
+            'Optional padding': '{ "text": "aGk", "options": { "padding": "optional" } }',
+            'Space is rejected': '{ "text": "aG k" }',
+          },
+        },
+        {
+          name: 'fromHex',
+          imports: ['fromHex'],
+          sig: 'fromHex(input)',
+          raw: true,
+          call: (q, text) => bytesOut(q.fromHex(text)),
+          presets: {
+            'Either case': '"68656C6c6f"',
+            '0x prefix is rejected': '"0x68656c6c6f"',
+          },
+        },
+      ],
+    },
+    {
+      id: 'struct',
+      name: 'quorin/struct',
+      subpath: 'quorin/struct',
+      doc: 'struct.md',
+      use: 'Try ValueMap and Multimap, the maps that native Map does not cover.',
+      fns: [
+        {
+          name: 'ValueMap',
+          sig: 'new ValueMap(); set each [key, value], then get(input.get)',
+          call: (q, { set, get }) => {
+            const map = new q.ValueMap();
+            for (const [key, value] of set) map.set(key, value);
+            return { size: map.size, get: map.get(get) ?? null };
+          },
+          presets: {
+            'Key order ignored': '{\n  "set": [[{ "sku": "tee", "size": "M" }, 20]],\n  "get": { "size": "M", "sku": "tee" }\n}',
+            'Same key twice': '{\n  "set": [[{ "id": 1 }, "first"], [{ "id": 1 }, "second"]],\n  "get": { "id": 1 }\n}',
+            'Array order matters': '{\n  "set": [[[1, 2], "a"]],\n  "get": [2, 1]\n}',
+          },
+        },
+        {
+          name: 'Multimap',
+          sig: 'new Multimap(); add each [key, value], then get(input.get)',
+          call: (q, { add, get }) => {
+            const map = new q.Multimap();
+            for (const [key, value] of add) map.add(key, value);
+            return { size: map.size, valueCount: map.valueCount, get: map.get(get) };
+          },
+          presets: {
+            'Tags per post': '{\n  "add": [["post-1", "ts"], ["post-1", "esm"], ["post-2", "ts"]],\n  "get": "post-1"\n}',
+            'Duplicates kept': '{\n  "add": [["k", "x"], ["k", "x"]],\n  "get": "k"\n}',
+            'Missing key': '{\n  "add": [],\n  "get": "nothing"\n}',
+          },
+        },
+      ],
+    },
+  ];
+  const TRY_BY_ID = Object.fromEntries(PLAYGROUND.map((p) => [p.id, p]));
+  const NAV_GROUPS = GROUPS.concat([['Playground', PLAYGROUND]]);
+
+  const ORDER = NAV_GROUPS.flatMap(([label, list]) => list.map((page) => ({ id: page.id, name: page.name, label })));
   const OVERVIEW_LINK = { id: 'overview', name: 'Overview', label: 'Back to start' };
   function neighbors(id) {
-    const i = ORDER.findIndex((o) => o.scene.id === id);
-    const link = (o) => (o ? { id: o.scene.id, name: o.scene.name, label: o.label } : OVERVIEW_LINK);
-    return { prev: link(ORDER[i - 1]), next: link(ORDER[i + 1]) };
+    const i = ORDER.findIndex((o) => o.id === id);
+    return { prev: ORDER[i - 1] || OVERVIEW_LINK, next: ORDER[i + 1] || OVERVIEW_LINK };
   }
+  const pagerHtml = (id) => {
+    const { prev, next } = neighbors(id);
+    return `<nav class="pager" aria-label="More pages">
+          <a class="prev" href="#${prev.id}" rel="prev"><small>Previous · ${esc(prev.label)}</small><code>${esc(prev.name)}</code></a>
+          <a class="next" href="#${next.id}" rel="next"><small>Next · ${esc(next.label)}</small><code>${esc(next.name)}</code></a>
+        </nav>`;
+  };
+  const pageKey = (id) => (e) => {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || palette.open || isTyping(e.target)) return;
+    if (e.key !== '[' && e.key !== ']') return;
+    e.preventDefault();
+    const { prev, next } = neighbors(id);
+    location.hash = '#' + (e.key === '[' ? prev : next).id;
+  };
 
   /* ---------------- Renderer ---------------- */
   function interpolate(a, b, k) {
@@ -2908,16 +3128,13 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     const speedSel = root.querySelector('[data-speed]');
     speedSel.value = String(speed);
     speedSel.addEventListener('change', (e) => { speed = Number(e.target.value); store.set('quorin.speed', String(speed)); });
+    const pageKeys = pageKey(scene.id);
     const onKey = (e) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || palette.open || isTyping(e.target)) return;
       if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); root.querySelector('[data-step]').click(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); root.querySelector('[data-back]').click(); }
-      else if (e.key === '[' || e.key === ']') {
-        e.preventDefault();
-        const { prev, next } = neighbors(scene.id);
-        location.hash = '#' + (e.key === '[' ? prev : next).id;
-      }
+      else pageKeys(e);
     };
     document.addEventListener('keydown', onKey);
     paramInput.addEventListener('input', () => {
@@ -2951,7 +3168,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   function renderNav(route) {
     const item = (s) => `<a href="#${s.id}" ${route === s.id ? 'aria-current="page"' : ''}><code>${esc(s.name)}</code></a>`;
     nav.innerHTML = `<div class="nav-group"><a href="#overview" ${route === 'overview' ? 'aria-current="page"' : ''}>Overview</a></div>`
-      + GROUPS.map(([label, list]) => `<div class="nav-group"><div class="nav-label">${esc(label)}</div>${list.map(item).join('')}</div>`).join('');
+      + NAV_GROUPS.map(([label, list]) => `<div class="nav-group"><div class="nav-label">${esc(label)}</div>${list.map(item).join('')}</div>`).join('');
   }
 
   const POOL_CODE = [
@@ -3107,6 +3324,11 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
             <h3 class="group-title">${esc(label)}</h3>
             <div class="cards">${list.map((s) => `<a class="card reveal" href="#${s.id}" data-card="${s.id}"><span data-preview="${s.id}"></span><h3>${esc(s.name)}</h3><p>${esc(s.use)}</p></a>`).join('')}</div>`).join('')}
         </section>
+        <section class="section">
+          <h2>Try it in the browser</h2>
+          <p>The pure functions have nothing to animate, so these pages run the real library instead. Edit the input and watch the output.</p>
+          <div class="cards">${PLAYGROUND.map((p) => `<a class="card card-try reveal" href="#${p.id}"><h3>${esc(p.name)}</h3><p>${esc(p.use)}</p><span class="try-fns">${p.fns.map((f) => `<code>${esc(f.name)}</code>`).join('')}</span></a>`).join('')}</div>
+        </section>
       </div>`;
     const minis = [];
     main.querySelectorAll('[data-card]').forEach((card) => {
@@ -3168,7 +3390,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   const palInput = document.getElementById('palette-input');
   const palList = document.getElementById('palette-list');
   const ITEMS = [{ id: 'overview', name: 'Overview', use: 'What quorin is and how to read the animations.', group: '' }]
-    .concat(GROUPS.flatMap(([group, list]) => list.map((s) => ({ id: s.id, name: s.name, use: s.use, group }))));
+    .concat(NAV_GROUPS.flatMap(([group, list]) => list.map((s) => ({ id: s.id, name: s.name, use: s.use, group }))));
   let palActive = 0;
   let palMatches = ITEMS;
 
@@ -3226,6 +3448,117 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     }
   });
 
+  function tryPage(page) {
+    let alive = true;
+    let fn = page.fns[0];
+    let lib = null;
+    let timer = 0;
+    main.innerHTML = `
+      <div class="page">
+        <header class="viz-head">
+          <span class="eyebrow">Try it · ${esc(page.subpath)}</span>
+          <h1>${esc(page.name)}</h1>
+          <p>${esc(page.use)}</p>
+        </header>
+        <div class="toolbar">
+          <span class="try-status" data-status><i></i><span>Loading quorin@${QUORIN_VERSION} from jsDelivr</span></span>
+          <a class="doclink" href="${DOCS}${page.doc}">Read the docs</a>
+        </div>
+        <section class="try" aria-label="Playground">
+          <div class="try-top">
+            <div class="fn-tabs" role="tablist" aria-label="Function">${page.fns.map((f, i) => `<button type="button" role="tab" id="fn-${page.id}-${i}" data-fn="${i}">${esc(f.name)}</button>`).join('')}</div>
+            <div class="presets" data-presets></div>
+          </div>
+          <div class="try-body" role="tabpanel">
+            <div class="try-in">
+              <label class="tile-label" for="try-input-${page.id}">Input (JSON)</label>
+              <textarea id="try-input-${page.id}" data-input spellcheck="false" autocomplete="off"></textarea>
+            </div>
+            <div class="try-out">
+              <span class="tile-label">Output</span>
+              <pre class="try-result" data-out aria-live="polite"></pre>
+              <span class="try-meta" data-meta></span>
+            </div>
+          </div>
+          <div class="try-code">
+            <div class="imports" data-imports></div>
+            <pre class="code" data-call></pre>
+          </div>
+        </section>
+        ${pagerHtml(page.id)}
+      </div>`;
+    const root = main.firstElementChild;
+    const input = root.querySelector('[data-input]');
+    const out = root.querySelector('[data-out]');
+    const meta = root.querySelector('[data-meta]');
+    const status = root.querySelector('[data-status]');
+    const show = (text, failed, note = '') => {
+      out.textContent = text;
+      out.classList.toggle('failed', failed);
+      meta.textContent = note;
+    };
+    function run() {
+      if (!lib) return;
+      let value;
+      try { value = JSON.parse(input.value); } catch (error) { show(`Input is not valid JSON: ${error.message}`, true); return; }
+      const start = performance.now();
+      try {
+        const result = fn.call(lib, value);
+        const text = fn.raw ? result : result === undefined ? 'undefined' : JSON.stringify(result, null, 2);
+        show(text, false, `Returned in ${(performance.now() - start).toFixed(2)} ms`);
+      } catch (error) {
+        show(`${error.name}${error.code ? ` [${error.code}]` : ''}\n${error.message}`, true, 'Threw. quorin refused the input.');
+      }
+    }
+    function loadPreset(name) {
+      input.value = fn.presets[name];
+      root.querySelectorAll('[data-preset]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === name)));
+      run();
+    }
+    function selectFn(i, focus) {
+      fn = page.fns[i];
+      root.querySelectorAll('[data-fn]').forEach((b) => {
+        const on = Number(b.dataset.fn) === i;
+        b.setAttribute('aria-selected', String(on));
+        b.tabIndex = on ? 0 : -1;
+        if (on && focus) b.focus();
+      });
+      root.querySelector('[role="tabpanel"]').setAttribute('aria-labelledby', `fn-${page.id}-${i}`);
+      root.querySelector('[data-presets]').innerHTML = Object.keys(fn.presets).map((name) => `<button type="button" data-preset="${esc(name)}" aria-pressed="false">${esc(name)}</button>`).join('');
+      root.querySelector('[data-imports]').innerHTML = `<span class="k">import</span> { ${(fn.imports || [fn.name]).join(', ')} } <span class="k">from</span> <span class="sub">'${esc(page.subpath)}'</span>;`;
+      root.querySelector('[data-call]').textContent = fn.sig;
+      loadPreset(Object.keys(fn.presets)[0]);
+    }
+    const tabs = root.querySelector('.fn-tabs');
+    tabs.addEventListener('click', (e) => { const b = e.target.closest('[data-fn]'); if (b) selectFn(Number(b.dataset.fn)); });
+    tabs.addEventListener('keydown', (e) => {
+      const i = Number(e.target.dataset.fn);
+      const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: page.fns.length - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      selectFn((to + page.fns.length) % page.fns.length, true);
+    });
+    root.querySelector('[data-presets]').addEventListener('click', (e) => { const b = e.target.closest('[data-preset]'); if (b) loadPreset(b.dataset.preset); });
+    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 180); });
+    const onKey = pageKey(page.id);
+    document.addEventListener('keydown', onKey);
+    selectFn(0);
+    show('Loading quorin…', false);
+    loadQuorin().then((mod) => {
+      if (!alive) return;
+      lib = mod;
+      status.classList.add('ready');
+      status.lastElementChild.textContent = `Running quorin@${QUORIN_VERSION}`;
+      run();
+    }, () => {
+      if (!alive) return;
+      status.classList.add('failed');
+      status.lastElementChild.textContent = 'Could not load quorin from jsDelivr';
+      show('The library could not be loaded, so nothing ran. The call below still shows how to use it, and the docs have the full contract.', true);
+    });
+    return { destroy() { alive = false; clearTimeout(timer); document.removeEventListener('keydown', onKey); } };
+  }
+
   // Deep links: #channel?mode=naive&capacity=0&step=7. Unknown or out-of-range values fall back to the defaults.
   const paramKey = (scene) => scene.param.label.split(' ')[0].toLowerCase();
   function linkState(scene, params) {
@@ -3240,7 +3573,6 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   }
 
   function vizPage(scene, state) {
-    const { prev, next } = neighbors(scene.id);
     main.innerHTML = `
       <div class="page">
         <header class="viz-head">
@@ -3286,10 +3618,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
             <div class="box"><h3>What to notice</h3><ul class="notice" data-notice></ul></div>
           </div>
         </div>
-        <nav class="pager" aria-label="More visualizers">
-          <a class="prev" href="#${prev.id}" rel="prev"><small>Previous · ${esc(prev.label)}</small><code>${esc(prev.name)}</code></a>
-          <a class="next" href="#${next.id}" rel="next"><small>Next · ${esc(next.label)}</small><code>${esc(next.name)}</code></a>
-        </nav>
+        ${pagerHtml(scene.id)}
       </div>`;
     return createPlayer(main.firstElementChild, scene, state);
   }
@@ -3301,8 +3630,11 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       if (current) current.destroy();
       current = null;
       const scene = BY_ID[id];
-      renderNav(scene ? id : 'overview');
-      current = scene ? vizPage(scene, linkState(scene, new URLSearchParams(query))) : overview();
+      const tryIt = TRY_BY_ID[id];
+      renderNav(scene || tryIt ? id : 'overview');
+      if (scene) current = vizPage(scene, linkState(scene, new URLSearchParams(query)));
+      else if (tryIt) current = tryPage(tryIt);
+      else current = overview();
       window.scrollTo(0, 0);
     };
     if (!firstRoute && document.startViewTransition && !reduceMotion) document.startViewTransition(swap);
