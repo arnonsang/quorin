@@ -46,3 +46,7 @@ git push --follow-tags
 `npm version` also updates the quorin version that the site's Try it pages load from jsDelivr and includes it in the version commit. Until the new version is published, those pages show a message that the library could not be loaded.
 
 The `Release` workflow checks that the tag matches `package.json`, runs `npm run check`, and publishes. If the package uses npm staged publishing, approve the staged version with `npm stage approve <id>` or on npmjs.com.
+
+## Site build
+
+`npm run build:site` renders `site/index.html` into `dist-site/`: one static page per visualizer and Try it page, `sitemap.xml`, `robots.txt`, `llms.txt`, `llms-full.txt`, a markdown twin of every page, and the skill under `/.well-known/skills/`. `npm run check:pages` builds and validates it (titles, canonicals, JSON-LD, internal links). The Pages workflow deploys `dist-site/` to quorin.iamick.dev.

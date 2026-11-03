@@ -3,17 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Quorin</title>
-<meta name="description" content="Animated visualizers for quorin, small TypeScript primitives for dependable async work, data, and failure handling.">
-<meta property="og:title" content="Quorin">
-<meta property="og:description" content="Watch each quorin primitive work, next to the quick version it replaces.">
+<!--SEO-->
 <meta name="theme-color" content="#1f4dff">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: sidebar app with hash routes; each visualizer is a stage card, controls, then code and log side by side. */
+/* Layout: sidebar app, one static page per route; each visualizer is a stage card, controls, then code and log side by side. */
 :root {
   --bg: #f5f7fc;
   --surface: #ffffff;
@@ -246,6 +243,14 @@ input[type="range"] { accent-color: var(--blue); width: 120px; }
 .tile-install .cmdline .prompt { opacity: 0.7; margin-right: 8px; }
 .tile-install p { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, 0.86); }
 .tile-install p a { color: #fff; }
+.tile-install .skill-label { margin-top: 8px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.25); }
+.tile-install p a { color: #fff; }
+.page.prose { margin-top: 44px; }
+.prose li { margin: 3px 0; }
+.faq { gap: 16px; }
+.faq h3 { font-size: 16px; margin: 0 0 4px; }
+.faq p { margin: 0; color: var(--muted); max-width: 66ch; }
+@view-transition { navigation: auto; }
 .btn-on-solid { border: 1px solid rgba(255, 255, 255, 0.5); background: transparent; color: #fff; border-radius: 10px; padding: 6px 12px; cursor: pointer; font-size: 13.5px; font-weight: 600; align-self: flex-start; }
 .btn-on-solid:hover { background: rgba(255, 255, 255, 0.14); }
 .btn-on-solid:focus-visible { outline-color: #fff; }
@@ -356,7 +361,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
 }
 </style>
 </head>
-<body>
+<body data-page="overview">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <linearGradient id="q-ring" x1="0" y1="0" x2="1" y2="1">
@@ -391,12 +396,12 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
 
 <div class="app">
   <aside class="side">
-    <a class="brand" href="#overview" aria-label="Quorin home">
+    <a class="brand" href="/" aria-label="Quorin home">
       <svg class="mark" aria-hidden="true"><use href="#mark"/></svg>
       <span class="wordmark">uor<span class="dotless">ı</span>n</span>
     </a>
     <button class="search" type="button" id="open-palette"><span>Jump to</span><kbd id="palette-key">Ctrl K</kbd></button>
-    <nav class="nav" id="nav" aria-label="Sections"></nav>
+    <nav class="nav" id="nav" aria-label="Sections"><!--NAV--></nav>
     <div class="side-foot">
       <span>0.2.0 preview</span>
       <a href="https://github.com/arnonsang/quorin">GitHub</a>
@@ -404,7 +409,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     </div>
   </aside>
   <div class="main-col">
-    <main id="main"></main>
+    <main id="main"><div id="view"><!--VIEW--></div><!--PROSE--></main>
     <footer class="foot">
       <div class="foot-in">
         <span>Made with <span class="heart" role="img" aria-label="love">♥</span> by <a href="https://iamickdev.com">arnonsang</a></span>
@@ -441,6 +446,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     ['bun', 'bun add quorin', TARGET_NOTE('Bun')],
     ['deno', 'deno add npm:quorin', TARGET_NOTE('Deno')],
   ];
+  const pathOf = (id) => (id === 'overview' ? '/' : `/${id}/`);
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // Colours JSON-looking text token by token; anything that is not a token is escaped and left as is.
@@ -2925,8 +2931,8 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   const pagerHtml = (id) => {
     const { prev, next } = neighbors(id);
     return `<nav class="pager" aria-label="More pages">
-          <a class="prev" href="#${prev.id}" rel="prev"><small>Previous · ${esc(prev.label)}</small><code>${esc(prev.name)}</code></a>
-          <a class="next" href="#${next.id}" rel="next"><small>Next · ${esc(next.label)}</small><code>${esc(next.name)}</code></a>
+          <a class="prev" href="${pathOf(prev.id)}" rel="prev"><small>Previous · ${esc(prev.label)}</small><code>${esc(prev.name)}</code></a>
+          <a class="next" href="${pathOf(next.id)}" rel="next"><small>Next · ${esc(next.label)}</small><code>${esc(next.name)}</code></a>
         </nav>`;
   };
   const pageKey = (id) => (e) => {
@@ -2934,7 +2940,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     if (e.key !== '[' && e.key !== ']') return;
     e.preventDefault();
     const { prev, next } = neighbors(id);
-    location.hash = '#' + (e.key === '[' ? prev : next).id;
+    location.href = pathOf((e.key === '[' ? prev : next).id);
   };
 
   /* ---------------- Renderer ---------------- */
@@ -3203,16 +3209,10 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   }
 
   /* ---------------- Pages ---------------- */
-  const main = document.getElementById('main');
-  const nav = document.getElementById('nav');
+  const view = document.getElementById('view');
   const palette = document.getElementById('palette');
-  let current = null;
-
-  function renderNav(route) {
-    const item = (s) => `<a href="#${s.id}" ${route === s.id ? 'aria-current="page"' : ''}><code>${esc(s.name)}</code></a>`;
-    nav.innerHTML = `<div class="nav-group"><a href="#overview" ${route === 'overview' ? 'aria-current="page"' : ''}>Overview</a></div>`
-      + NAV_GROUPS.map(([label, list]) => `<div class="nav-group"><div class="nav-label">${esc(label)}</div>${list.map(item).join('')}</div>`).join('');
-  }
+  
+  const SKILL_INSTALL = 'npx skills add arnonsang/quorin';
 
   const POOL_CODE = [
     '<span class="k">import</span> { Channel, createTaskGroup } <span class="k">from</span> <span class="s">\'quorin/async\'</span>;',
@@ -3316,7 +3316,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       ['A cross is cancelled or failed', 'The work stopped. Red means it was lost or failed.', '<circle cx="28" cy="18" r="10" style="fill:var(--bad)"/><path d="M23.5 13.5 L32.5 22.5 M32.5 13.5 L23.5 22.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>'],
     ];
     const stats = [['0', 'runtime dependencies'], ['10', 'subpath modules'], ['5.8+', 'TypeScript'], ['22.19+', 'Node.js']];
-    main.innerHTML = `
+    view.innerHTML = `
       <div class="page">
         <div class="bento">
           <section class="tile tile-hero" aria-labelledby="hero-title">
@@ -3326,7 +3326,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
               <div class="chips" aria-label="Modules">${['struct', 'object', 'bytes', 'async', 'signal', 'result', 'boundary', 'resilience', 'cache', 'state'].map((m) => `<code>quorin/${m}</code>`).join('')}</div>
             </div>
             <div class="cta">
-              <a class="btn-solid" href="#channel">Start with Channel</a>
+              <a class="btn-solid" href="/channel/">Start with Channel</a>
               <a class="btn-ghost" href="${DOCS}README.md">Read the docs</a>
               <span class="hint"><kbd>${palKey}</kbd> to jump anywhere</span>
             </div>
@@ -3337,8 +3337,12 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
             <div class="cmdline" id="install-cmd" role="tabpanel"><span class="prompt" aria-hidden="true">$</span><span id="install-text"></span></div>
             <p id="install-note"></p>
             <button class="btn-on-solid" id="copy-install" type="button">Copy</button>
+            <span class="tile-label skill-label">Agent skill</span>
+            <div class="cmdline"><span class="prompt" aria-hidden="true">$</span><span>${SKILL_INSTALL}</span></div>
+            <p>Teaches Claude Code, Cursor, Codex and other agents to use quorin. <a href="/#skill">Details</a></p>
+            <button class="btn-on-solid" id="copy-skill" type="button">Copy</button>
           </section>
-          <a class="tile tile-live" href="#select" aria-label="Open the select visualizer">
+          <a class="tile tile-live" href="/select/" aria-label="Open the select visualizer">
             <span data-live></span>
             <span class="live-cap"><code>select</code><span>exactly one case wins</span></span>
           </a>
@@ -3365,16 +3369,16 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
           <p>Each one plays with quorin first. Switch to the naive version to see the bug it prevents. Hover a card to preview it.</p>
           ${GROUPS.map(([label, list]) => `
             <h3 class="group-title">${esc(label)}</h3>
-            <div class="cards">${list.map((s) => `<a class="card reveal" href="#${s.id}" data-card="${s.id}"><span data-preview="${s.id}"></span><h3>${esc(s.name)}</h3><p>${esc(s.use)}</p></a>`).join('')}</div>`).join('')}
+            <div class="cards">${list.map((s) => `<a class="card reveal" href="/${s.id}/" data-card="${s.id}"><span data-preview="${s.id}"></span><h3>${esc(s.name)}</h3><p>${esc(s.use)}</p></a>`).join('')}</div>`).join('')}
         </section>
         <section class="section">
           <h2>Try it in the browser</h2>
           <p>The pure functions have nothing to animate, so these pages run the real library instead. Edit the input and watch the output.</p>
-          <div class="cards">${PLAYGROUND.map((p) => `<a class="card card-try reveal" href="#${p.id}"><h3>${esc(p.name)}</h3><p>${esc(p.use)}</p><span class="try-fns">${p.fns.map((f) => `<code>${esc(f.name)}</code>`).join('')}</span></a>`).join('')}</div>
+          <div class="cards">${PLAYGROUND.map((p) => `<a class="card card-try reveal" href="/${p.id}/"><h3>${esc(p.name)}</h3><p>${esc(p.use)}</p><span class="try-fns">${p.fns.map((f) => `<code>${esc(f.name)}</code>`).join('')}</span></a>`).join('')}</div>
         </section>
       </div>`;
     const minis = [];
-    main.querySelectorAll('[data-card]').forEach((card) => {
+    view.querySelectorAll('[data-card]').forEach((card) => {
       const mini = miniPlayer(card.querySelector('[data-preview]'), BY_ID[card.dataset.card]);
       minis.push(mini);
       card.addEventListener('pointerenter', mini.start);
@@ -3383,8 +3387,8 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       card.addEventListener('blur', mini.stop);
       card.addEventListener('click', () => { card.querySelector('.preview').style.viewTransitionName = 'stage'; });
     });
-    const liveTile = main.querySelector('.tile-live');
-    const live = miniPlayer(main.querySelector('[data-live]'), selectScene);
+    const liveTile = view.querySelector('.tile-live');
+    const live = miniPlayer(view.querySelector('[data-live]'), selectScene);
     minis.push(live);
     liveTile.addEventListener('click', () => { liveTile.querySelector('.preview').style.viewTransitionName = 'stage'; });
     let observer = null;
@@ -3392,7 +3396,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
       observer = new IntersectionObserver((entries) => entries.forEach((en) => (en.isIntersecting ? live.start() : live.stop())));
       observer.observe(liveTile);
     } else live.start();
-    const pmTabs = main.querySelector('.pm');
+    const pmTabs = view.querySelector('.pm');
     const installText = document.getElementById('install-text');
     function selectPm(name, focus) {
       const [pm, command, note] = PMS.find(([n]) => n === name) || PMS[0];
@@ -3421,9 +3425,11 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     selectPm(store.get('quorin:pm') || 'npm');
     const copyInstall = document.getElementById('copy-install');
     copyInstall.addEventListener('click', () => copyText(copyInstall, installText.textContent, 'Copy'));
+    const copySkill = document.getElementById('copy-skill');
+    copySkill.addEventListener('click', () => copyText(copySkill, SKILL_INSTALL, 'Copy'));
     const copyCode = document.getElementById('copy-code');
     copyCode.addEventListener('click', () => copyText(copyCode, POOL_CODE.map(plain).join('\n'), 'Copy'));
-    renderDownloads(main.querySelector('[data-dl]'));
+    renderDownloads(view.querySelector('[data-dl]'));
     return { destroy() { minis.forEach((m) => m.stop()); if (observer) observer.disconnect(); } };
   }
 
@@ -3459,8 +3465,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
   }
   function openPage(id) {
     palette.close();
-    if (location.hash.replace('#', '') === id) return;
-    location.hash = id;
+    if (location.pathname !== pathOf(id)) location.href = pathOf(id);
   }
   palInput.addEventListener('input', () => { palActive = 0; palRender(); });
   palInput.addEventListener('keydown', (e) => {
@@ -3496,7 +3501,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     let fn = page.fns[0];
     let lib = null;
     let timer = 0;
-    main.innerHTML = `
+    view.innerHTML = `
       <div class="page">
         <header class="viz-head">
           <span class="eyebrow">Try it · ${esc(page.subpath)}</span>
@@ -3533,7 +3538,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
         </section>
         ${pagerHtml(page.id)}
       </div>`;
-    const root = main.firstElementChild;
+    const root = view.firstElementChild;
     const input = root.querySelector('[data-input]');
     const out = root.querySelector('[data-out]');
     const meta = root.querySelector('[data-meta]');
@@ -3618,7 +3623,7 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     return { destroy() { alive = false; clearTimeout(timer); document.removeEventListener('keydown', onKey); } };
   }
 
-  // Deep links: #channel?mode=naive&capacity=0&step=7. Unknown or out-of-range values fall back to the defaults.
+  // Deep links: /channel/?mode=naive&capacity=0&step=7. Unknown or out-of-range values fall back to the defaults.
   const paramKey = (scene) => scene.param.label.split(' ')[0].toLowerCase();
   function linkState(scene, params) {
     const mode = params.get('mode') === 'naive' ? 'naive' : 'quorin';
@@ -3628,11 +3633,11 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
     return { mode, param, step: Number.isInteger(step) && step >= 1 ? step : 0 };
   }
   function stepLink(scene, mode, param, step) {
-    return `${location.origin}${location.pathname}#${scene.id}?mode=${mode}&${paramKey(scene)}=${param}&step=${step}`;
+    return `${location.origin}/${scene.id}/?mode=${mode}&${paramKey(scene)}=${param}&step=${step}`;
   }
 
   function vizPage(scene, state) {
-    main.innerHTML = `
+    view.innerHTML = `
       <div class="page">
         <header class="viz-head">
           <span class="eyebrow">${esc(scene.subpath)}</span>
@@ -3679,29 +3684,16 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
         </div>
         ${pagerHtml(scene.id)}
       </div>`;
-    return createPlayer(main.firstElementChild, scene, state);
+    return createPlayer(view.firstElementChild, scene, state);
   }
 
-  let firstRoute = true;
   function route() {
-    const [id, query = ''] = (location.hash.replace('#', '') || 'overview').split('?');
-    const swap = () => {
-      if (current) current.destroy();
-      current = null;
-      const scene = BY_ID[id];
-      const tryIt = TRY_BY_ID[id];
-      renderNav(scene || tryIt ? id : 'overview');
-      if (scene) current = vizPage(scene, linkState(scene, new URLSearchParams(query)));
-      else if (tryIt) current = tryPage(tryIt);
-      else current = overview();
-      window.scrollTo(0, 0);
-    };
-    if (!firstRoute && document.startViewTransition && !reduceMotion) document.startViewTransition(swap);
-    else swap();
-    firstRoute = false;
+    const id = document.body.dataset.page;
+    if (BY_ID[id]) vizPage(BY_ID[id], linkState(BY_ID[id], new URLSearchParams(location.search)));
+    else if (TRY_BY_ID[id]) tryPage(TRY_BY_ID[id]);
+    else if (id === 'overview') overview();
   }
 
-  window.addEventListener('hashchange', route);
   route();
 })();
 </script>
