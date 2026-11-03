@@ -242,9 +242,11 @@ input[type="range"] { accent-color: var(--blue); width: 120px; }
 .tile-install .cmdline { font-family: var(--font-mono); font-size: 17px; word-break: break-word; }
 .tile-install .cmdline .prompt { opacity: 0.7; margin-right: 8px; }
 .tile-install p { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, 0.86); }
-.tile-install p a { color: #fff; }
+.tile-install .skill-label a { color: #fff; text-transform: none; letter-spacing: 0; font-weight: 500; margin-left: 6px; }
+.tile-install .cmd-sm { display: flex; align-items: center; gap: 8px; font-size: 12.5px; white-space: nowrap; }
+.tile-install .cmd-sm .prompt { margin-right: 0; }
+.tile-install .cmd-sm .btn-on-solid { margin-left: auto; padding: 3px 10px; font-size: 12.5px; flex: none; }
 .tile-install .skill-label { margin-top: 8px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.25); }
-.tile-install p a { color: #fff; }
 .page.prose { margin-top: 44px; }
 .prose li { margin: 3px 0; }
 .faq { gap: 16px; }
@@ -3337,10 +3339,8 @@ kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--
             <div class="cmdline" id="install-cmd" role="tabpanel"><span class="prompt" aria-hidden="true">$</span><span id="install-text"></span></div>
             <p id="install-note"></p>
             <button class="btn-on-solid" id="copy-install" type="button">Copy</button>
-            <span class="tile-label skill-label">Agent skill</span>
-            <div class="cmdline"><span class="prompt" aria-hidden="true">$</span><span>${SKILL_INSTALL}</span></div>
-            <p>Teaches Claude Code, Cursor, Codex and other agents to use quorin. <a href="/#skill">Details</a></p>
-            <button class="btn-on-solid" id="copy-skill" type="button">Copy</button>
+            <span class="tile-label skill-label">Agent skill <a href="/#skill">Details</a></span>
+            <div class="cmdline cmd-sm"><span class="prompt" aria-hidden="true">$</span><span>${SKILL_INSTALL}</span><button class="btn-on-solid" id="copy-skill" type="button">Copy</button></div>
           </section>
           <a class="tile tile-live" href="/select/" aria-label="Open the select visualizer">
             <span data-live></span>
