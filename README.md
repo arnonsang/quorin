@@ -1,8 +1,11 @@
 <div align="center">
 
-<img src="https://arnonsang.github.io/quorin/logo.svg" alt="" width="120" height="120">
-
-# quorin
+<h1>
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="https://arnonsang.github.io/quorin/wordmark-dark.png">
+<img src="https://arnonsang.github.io/quorin/wordmark-light.png" alt="quorin" height="110">
+</picture>
+</h1>
 
 **Small primitives for dependable TypeScript.**
 
